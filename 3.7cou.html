@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RUNLOG｜多平台外送日誌</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛵</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1418; --panel:#151c23; --panel2:#1a232c; --ink:#10161c;
+  --line:#26323d; --line2:#37485599;
+  --text:#e8eef4; --dim:#92a3b1; --faint:#5f7180;
+  --sun:#ffd24a; --sun2:#f0b429; --teal:#4cc9ec; --ue:#17d17c; --dd:#ff5a3c; --pd:#ffa130; --red:#ff5d6c;
+  --r:14px; --mono:'JetBrains Mono',monospace; --disp:'Big Shoulders Display','Noto Sans TC',sans-serif;
+  --sky1:#0b1219; --sky2:#0e1721; --sky3:#0a0e12;
+  --bldg:#17222d; --win:#ffd24a;
+  --grid-c:rgba(255,255,255,.028);
+}
+:root[data-theme="light"]{
+  --bg:#f3f5f8; --panel:#ffffff; --panel2:#fafbfd; --ink:#ffffff;
+  --line:#e1e5eb; --line2:#c9d0db;
+  --text:#1a2030; --dim:#5a6472; --faint:#8891a0;
+  --sun:#e9a320; --sun2:#d18910; --teal:#2196b5; --ue:#0da565; --dd:#e24428; --pd:#e58910; --red:#dc3545;
+  --sky1:#c4e2ff; --sky2:#e8f2ff; --sky3:#fff3d6;
+  --bldg:#8ba2b8; --win:#ffd98a;
+  --grid-c:rgba(20,30,60,.055);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Barlow','Noto Sans TC',sans-serif; background:var(--bg); color:var(--text);
+  font-size:15px; line-height:1.5; min-height:100vh; display:flex;
+  transition:background .3s ease,color .3s ease;
+}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(var(--grid-c) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--grid-c) 1px,transparent 1px);
+  background-size:46px 46px;
+  mask-image:radial-gradient(120% 90% at 50% 0%,#000 40%,transparent 100%);
+}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(700px 340px at 78% -8%,rgba(255,210,74,.09),transparent 70%),
+             radial-gradient(560px 320px at -5% 108%,rgba(76,201,236,.07),transparent 70%);
+}
+:root[data-theme="light"] body::after{
+  background:radial-gradient(700px 340px at 78% -8%,rgba(255,180,80,.22),transparent 70%),
+             radial-gradient(560px 320px at -5% 108%,rgba(80,180,255,.18),transparent 70%);
+}
+.route-bg{position:fixed;left:0;bottom:0;width:100%;height:220px;z-index:0;pointer-events:none;opacity:.6}
+.route-bg path{animation:dashmove 26s linear infinite}
+@keyframes dashmove{to{stroke-dashoffset:-600}}
+.sidebar{width:236px;flex:none;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));border-right:1px solid var(--line);z-index:40;padding:20px 14px 14px;
+  transition:background .3s ease}
+.brand{display:flex;gap:11px;align-items:center;padding:2px 8px 18px;border-bottom:1px dashed var(--line);margin-bottom:14px}
+.brand-badge{width:42px;height:42px;flex:none;border-radius:11px;display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--sun),var(--sun2));color:#221a03;box-shadow:0 6px 18px rgba(255,210,74,.22)}
+.brand-name{font-family:var(--disp);font-weight:800;font-size:24px;letter-spacing:1.5px;line-height:1}
+.brand-sub{font-size:11px;color:var(--dim);letter-spacing:2px;margin-top:3px}
+.nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.nav-btn{display:flex;align-items:center;gap:11px;padding:10px 11px;border:0;background:transparent;color:var(--dim);
+  border-radius:10px;cursor:pointer;text-align:left;font:inherit;position:relative;transition:.18s}
+.nav-btn svg{flex:none;opacity:.85}
+.nav-btn b{display:block;font-size:14.5px;font-weight:700;color:inherit}
+.nav-btn i{display:block;font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:2px;opacity:.6}
+.nav-btn:hover{background:#ffffff0a;color:var(--text)}
+:root[data-theme="light"] .nav-btn:hover{background:#00000008}
+.nav-btn.active{background:#ffffff0d;color:var(--text)}
+:root[data-theme="light"] .nav-btn.active{background:#ffd24a1a}
+.nav-btn.active::before{content:'';position:absolute;left:-14px;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--sun)}
+.side-foot{border-top:1px dashed var(--line);padding-top:12px}
+.side-shift{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.ss-top{display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:9px}
+.ss-top .mono{margin-left:auto;font-size:12px;color:var(--dim)}
+.ss-label{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:5px}
+.bar{height:7px;background:#0b1015;border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+:root[data-theme="light"] .bar{background:#eef1f5}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sun2),var(--sun));border-radius:99px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.dot.on{background:var(--ue);box-shadow:0 0 0 0 rgba(23,209,124,.5);animation:pulse 1.6s infinite}
+.dot.br{background:var(--sun);box-shadow:0 0 0 0 rgba(255,210,74,.5);animation:pulse 1.6s infinite}
+.dot.err{background:var(--red)}
+#fbPill{cursor:pointer}
+#themeBtn{cursor:pointer;font-size:14px;padding:7px 11px;transition:transform .3s ease}
+#themeBtn:active{transform:scale(.85) rotate(20deg)}
+@keyframes pulse{70%{box-shadow:0 0 0 9px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.main{flex:1;min-width:0;position:relative;z-index:1;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 26px;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(6px)}
+.hamb{display:none;background:none;border:1px solid var(--line);color:var(--text);border-radius:9px;width:38px;height:38px;cursor:pointer}
+.top-date{font-family:var(--mono);font-size:13px;color:var(--dim);letter-spacing:.5px}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 13px;border:1px solid var(--line);border-radius:99px;
+  font-size:12.5px;color:var(--dim);background:var(--panel);transition:background .3s ease}
+.pill .mono{font-size:12px}
+main{padding:24px 26px 60px;max-width:1180px;width:100%;margin:0 auto}
+.view{display:none;animation:fadeUp .35s ease}
+.view.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);
+  padding:18px 20px;box-shadow:0 12px 30px rgba(0,0,0,.22);transition:background .3s ease,border-color .3s ease}
+:root[data-theme="light"] .card{box-shadow:0 4px 20px rgba(30,45,80,.08)}
+.card h3{font-size:12px;font-weight:700;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.card h3 .en{font-family:var(--disp);color:var(--faint);letter-spacing:2px}
+.card h3 .right{margin-left:auto;display:flex;gap:8px;letter-spacing:0}
+.btn{font:inherit;font-weight:700;border:0;cursor:pointer;border-radius:10px;padding:10px 18px;transition:.18s;display:inline-flex;align-items:center;gap:7px}
+.btn-sm{padding:7px 13px;font-size:13px;border-radius:9px}
+.btn-primary{background:linear-gradient(145deg,var(--sun),var(--sun2));color:#221a03;box-shadow:0 5px 16px rgba(255,210,74,.2)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(255,210,74,.32)}
+.btn-ghost{background:transparent;border:1px solid var(--line2);color:var(--text)}
+.btn-ghost:hover{background:#ffffff0d;transform:translateY(-1px)}
+:root[data-theme="light"] .btn-ghost:hover{background:#00000006}
+.btn-danger{background:transparent;border:1px solid #ff5d6c55;color:var(--red)}
+.btn-danger:hover{background:#ff5d6c18}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none}
+input,select,textarea{font:inherit;font-size:14px;color:var(--text);background:var(--ink);border:1px solid var(--line);
+  border-radius:9px;padding:9px 11px;width:100%;transition:.15s,background .3s ease}
+:root[data-theme="light"] input,:root[data-theme="light"] select,:root[data-theme="light"] textarea{background:#f7f9fc;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--sun);box-shadow:0 0 0 3px rgba(255,210,74,.14)}
+label{display:block;font-size:11.5px;color:var(--dim);letter-spacing:1px;margin-bottom:5px;font-weight:600}
+.money{font-family:var(--mono);font-weight:700}
+.big{font-family:var(--disp);font-weight:800;letter-spacing:.5px}
+.mono{font-family:var(--mono)}
+.dim{color:var(--dim)} .faint{color:var(--faint)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);background:#ffffff08;
+  border:1px solid var(--line);padding:5px 11px;border-radius:99px}
+:root[data-theme="light"] .chip{background:#00000005}
+.pbadge{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:99px;
+  color:var(--c);background:rgba(255,255,255,.05);background:color-mix(in srgb,var(--c) 13%,transparent);
+  border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
+.pbadge::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--c)}
+.page-head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.page-head h1{font-family:var(--disp);font-weight:800;font-size:34px;letter-spacing:.5px;line-height:1.1}
+.page-head .sub{color:var(--dim);font-size:13.5px;margin-top:4px}
+.head-chips{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.dash-hero{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;margin-bottom:16px}
+.shift-card{position:relative;overflow:hidden}
+.shift-card::after{content:'';position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,210,74,.1),transparent 70%);pointer-events:none}
+.live-clock{font-family:var(--mono);font-weight:700;font-size:56px;line-height:1;letter-spacing:1px;margin:8px 0 4px;
+  font-variant-numeric:tabular-nums}
+.shift-meta{font-size:12.5px;color:var(--dim);margin-bottom:16px}
+.shift-btns{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+.shift-chips{display:flex;gap:9px;flex-wrap:wrap}
+.shift-chips .chip b{color:var(--text);font-family:var(--mono);font-size:12.5px}
+.today-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.tile{display:flex;flex-direction:column;justify-content:center;gap:4px;transition:.2s}
+.tile:hover{transform:translateY(-3px);border-color:var(--line2)}
+.tile .lab{font-size:11px;letter-spacing:2px;color:var(--faint);font-weight:700}
+.tile .lab em{font-style:normal;font-family:var(--disp);letter-spacing:1.5px;margin-right:6px;font-size:12px}
+.tile .val{font-family:var(--disp);font-weight:800;font-size:37px;line-height:1.05}
+.tile .val.money{font-family:var(--mono);font-size:31px}
+.tile.accent .val{color:var(--sun)}
+.week-band{display:flex;align-items:center;gap:0;padding:16px 8px;margin-bottom:16px;flex-wrap:wrap}
+.wb-item{flex:1;min-width:130px;padding:4px 22px;border-right:1px dashed var(--line)}
+.wb-item:last-child{border-right:0;min-width:230px}
+.wb-item .lab{font-size:10.5px;letter-spacing:2px;color:var(--faint);font-weight:700}
+.wb-item .val{font-family:var(--disp);font-weight:800;font-size:30px}
+.wb-item .val.money{font-family:var(--mono);font-size:25px}
+.grid-2{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px}
+.wchart{display:flex;gap:10px;height:200px;align-items:stretch;padding-top:18px}
+.wcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.wcol .bar{width:100%;max-width:46px;height:0;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--teal),#2a7d9c);
+  transition:height .8s cubic-bezier(.2,.8,.2,1);position:relative;min-height:0;border:0}
+.wcol .bar.today{background:linear-gradient(180deg,var(--sun),var(--sun2));box-shadow:0 0 18px rgba(255,210,74,.25)}
+.wcol .bar.zero{background:var(--line);height:3px!important;min-height:3px}
+.wcol:hover .bar{filter:brightness(1.15)}
+.wcol .val{font-family:var(--mono);font-size:10px;color:var(--dim);height:14px}
+.wcol .dow{font-size:11.5px;color:var(--faint)}
+.wcol .dow.t{color:var(--sun);font-weight:700}
+.donut-wrap{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.donut{position:relative;width:140px;height:140px;flex:none}
+.dz{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+.dz .money{font-family:var(--disp);font-weight:800;font-size:32px;line-height:1;color:var(--text);letter-spacing:0.5px}
+.dz small{display:inline-block;color:var(--dim);font-size:11px;font-weight:600;letter-spacing:1.5px;margin-top:5px}
+.legend{flex:1;min-width:150px;display:flex;flex-direction:column;gap:12px}
+.legend .lg{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.legend .sw{width:8px;height:8px;border-radius:50%;flex:none}
+.legend .pc{margin-left:auto;color:var(--dim);font-family:var(--mono);font-size:12px;font-weight:600}
+.recent-item,.list-row{display:flex;align-items:center;gap:13px;padding:11px 4px;border-bottom:1px solid #ffffff09;font-size:13.5px}
+:root[data-theme="light"] .recent-item,:root[data-theme="light"] .list-row{border-bottom-color:#00000008}
+.recent-item:last-child,.list-row:last-child{border-bottom:0}
+.hoverable{transition:.15s;border-radius:8px;padding-left:8px;padding-right:8px}
+.hoverable:hover{background:#ffffff07}
+:root[data-theme="light"] .hoverable:hover{background:#00000005}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:10.5px;letter-spacing:1.8px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:700;white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid #ffffff08;vertical-align:middle}
+:root[data-theme="light"] td{border-bottom-color:#00000008}
+tbody tr{transition:.15s}
+tbody tr:hover{background:#ffffff06}
+:root[data-theme="light"] tbody tr:hover{background:#f5f7fa}
+td.plat{border-left:3px solid var(--c);padding-left:12px}
+.icon-btn{background:none;border:0;color:var(--faint);cursor:pointer;padding:5px;border-radius:7px;transition:.15s}
+.icon-btn:hover{color:var(--text);background:#ffffff10}
+:root[data-theme="light"] .icon-btn:hover{background:#00000008}
+.icon-btn.del:hover{color:var(--red)}
+.stats-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+.filter-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.fchip{font:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:99px;cursor:pointer;
+  background:transparent;border:1px solid var(--line);color:var(--dim);transition:.15s;display:inline-flex;align-items:center;gap:7px}
+.fchip:hover{border-color:var(--line2);color:var(--text)}
+.fchip.on{background:#ffffff10;border-color:var(--sun);color:var(--text)}
+:root[data-theme="light"] .fchip.on{background:#ffd24a1a}
+.fchip .sw{width:8px;height:8px;border-radius:2px;background:var(--c)}
+select.inline{width:auto}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{text-align:center;font-size:11px;color:var(--faint);font-weight:700;padding:2px 0}
+.cal-cell{position:relative;min-height:88px;border:1px solid var(--line);border-radius:10px;background:var(--ink);
+  cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;padding:6px 8px;gap:2px;font:inherit;color:var(--text);transition:.15s;text-align:left}
+:root[data-theme="light"] .cal-cell{background:#f7f9fc}
+.cal-cell:hover{border-color:var(--line2);transform:translateY(-2px)}
+.cal-cell.out{opacity:.35}
+.cal-cell.sel{border-color:var(--sun);box-shadow:0 0 0 2px rgba(255,210,74,.22)}
+.cal-cell .cd{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.cal-cell.today .cd{background:var(--sun);color:#221a03;border-radius:6px;padding:0 5px;font-weight:700}
+.cal-cell .ci{font-size:13px;font-weight:700;color:var(--sun);font-family:var(--mono)}
+.cal-cell .cs{font-size:10px;color:var(--ue);font-family:var(--mono)}
+.cal-cell .co{font-size:10px;color:var(--faint)}
+.cal-cell .cdots{margin-top:auto;display:flex;gap:3px}
+.cal-cell .cdots i{width:6px;height:6px;border-radius:2px;display:block}
+@media(max-width:700px){.cal-cell{min-height:64px;padding:4px 6px}.cal-cell .co{display:none}}
+.ana-strip{display:flex;gap:0;flex-wrap:wrap;margin-bottom:16px;padding:14px 6px}
+.plat-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:16px;margin-bottom:16px}
+.pcard{position:relative;overflow:hidden}
+.pcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c)}
+.pcard .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pcard .crown{margin-left:auto;font-size:11px;font-weight:700;color:#221a03;background:var(--sun);padding:3px 9px;border-radius:99px}
+.pcard .hourly{font-family:var(--disp);font-weight:800;font-size:44px;line-height:1;color:var(--c)}
+.pcard .hourly small{font-size:15px;color:var(--dim);font-family:'Barlow','Noto Sans TC';font-weight:600}
+.pcard .rows{margin-top:13px;display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;font-size:12.5px}
+.pcard .rows div{display:flex;justify-content:space-between;border-bottom:1px dotted #ffffff12;padding-bottom:4px}
+:root[data-theme="light"] .pcard .rows div{border-bottom-color:#00000010}
+.pcard .rows span:last-child{font-family:var(--mono);font-size:12px}
+.meter{height:6px;background:#0b1015;border-radius:99px;margin-top:14px;overflow:hidden}
+:root[data-theme="light"] .meter{background:#eef1f5}
+.meter i{display:block;height:100%;background:var(--c);border-radius:99px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.vrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dotted #ffffff12;font-size:13.5px}
+:root[data-theme="light"] .vrow{border-bottom-color:#00000010}
+.vrow:last-child{border:0}
+.vrow b{font-family:var(--mono)}
+.vrow .pos{color:var(--ue)} .vrow .neg{color:var(--red)}
+.set-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end}
+.plat-manage-row{display:flex;align-items:center;gap:11px;padding:10px 2px;border-bottom:1px solid #ffffff09;font-size:14px}
+:root[data-theme="light"] .plat-manage-row{border-bottom-color:#00000008}
+.plat-manage-row:last-child{border:0}
+.sw-lg{width:16px;height:16px;border-radius:5px;flex:none}
+.tiny{font-size:11px;color:var(--faint)}
+.overlay{position:fixed;inset:0;background:#070a0dcc;backdrop-filter:blur(3px);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
+:root[data-theme="light"] .overlay{background:#1a203066}
+.overlay.open{display:flex}
+.modal{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:16px;
+  width:100%;max-width:520px;padding:22px 24px;animation:pop .25s cubic-bezier(.2,.9,.3,1.2)}
+:root[data-theme="light"] .modal{box-shadow:0 20px 60px rgba(20,30,60,.25)}
+@keyframes pop{from{opacity:0;transform:translateY(18px) scale(.97)}}
+.modal h2{font-family:var(--disp);font-weight:800;font-size:24px;margin-bottom:16px;letter-spacing:.5px}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.m-grid .full{grid-column:1/-1}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+#toastWrap{position:fixed;bottom:22px;right:22px;z-index:200;display:flex;flex-direction:column;gap:9px}
+.toast{background:var(--panel);border:1px solid var(--line2);border-left:4px solid var(--sun);color:var(--text);
+  padding:12px 17px;border-radius:11px;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.4);animation:tin .3s ease;max-width:320px}
+:root[data-theme="light"] .toast{box-shadow:0 12px 30px rgba(20,30,60,.18)}
+.toast.err{border-left-color:var(--red)} .toast.ok{border-left-color:var(--ue)}
+@keyframes tin{from{opacity:0;transform:translateX(30px)}}
+.empty-box{text-align:center;padding:38px 20px;border:1px dashed var(--line2);border-radius:var(--r)}
+.empty-box .big{font-size:24px;margin-bottom:6px}
+.city-strip{margin:0 26px;height:172px;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 62%,var(--sky3) 100%);position:relative;transition:background .4s ease}
+.city-strip svg{display:block;width:100%;height:100%}
+.city-strip .sign{font-family:'Barlow','Noto Sans TC',sans-serif}
+.star{animation:twinkle 2.8s ease-in-out infinite;transition:opacity .4s ease}
+:root[data-theme="light"] .star{opacity:0!important}
+.sun-disc{position:absolute;top:18px;right:70px;width:44px;height:44px;border-radius:50%;
+  background:radial-gradient(circle,#fff4c2,#ffc14d 70%,transparent);
+  box-shadow:0 0 40px rgba(255,200,80,.6);opacity:0;transition:opacity .4s ease;pointer-events:none}
+:root[data-theme="light"] .sun-disc{opacity:1}
+.cloud{position:absolute;top:22px;width:60px;height:18px;background:rgba(255,255,255,.85);border-radius:99px;
+  opacity:0;transition:opacity .4s ease;pointer-events:none;animation:drift 30s linear infinite}
+.cloud::before,.cloud::after{content:'';position:absolute;background:rgba(255,255,255,.85);border-radius:50%}
+.cloud::before{width:26px;height:26px;left:10px;top:-10px}
+.cloud::after{width:20px;height:20px;right:8px;top:-6px}
+.cloud.c2{top:38px;right:200px;width:48px;height:14px;animation-duration:38s;animation-delay:-10s}
+.cloud.c3{top:12px;right:360px;width:70px;height:20px;animation-duration:44s;animation-delay:-22s}
+:root[data-theme="light"] .cloud{opacity:1}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(-1500px)}}
+.flicker{animation:flick 6s linear infinite}
+@keyframes flick{0%,6.5%,8%,41%,43.5%,100%{opacity:1}7%{opacity:.35}42%{opacity:.5}}
+:root[data-theme="light"] .flicker{animation:none}
+.wheel{animation:spin .55s linear infinite;transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.rider-move{animation:ride 17s linear infinite}
+@keyframes ride{from{transform:translateX(-150px)}to{transform:translateX(1350px)}}
+.rider-body{animation:bob .55s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+@keyframes bob{to{transform:translateY(1.4px)}}
+.road-dash{animation:roadash 1s linear infinite}
+@keyframes roadash{to{stroke-dashoffset:-52}}
+.steam{animation:steam 2.6s ease-out infinite;transform-box:fill-box}
+@keyframes steam{0%{opacity:0;transform:translateY(2px)}35%{opacity:.75}100%{opacity:0;transform:translateY(-7px)}}
+.spit{animation:spit 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes spit{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.25)}}
+.bldg{fill:var(--bldg);transition:fill .4s ease}
+.win{fill:var(--win);opacity:.45;transition:fill .4s ease}
+.drow{display:grid;grid-template-columns:1.2fr .65fr 1fr auto;gap:8px;align-items:center}
+@media(max-width:980px){
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-105%);transition:.28s cubic-bezier(.2,.8,.2,1);box-shadow:20px 0 60px rgba(0,0,0,.5)}
+  body.side-open .sidebar{transform:none}
+  .hamb{display:grid;place-items:center}
+  .dash-hero,.grid-2,.two-col,.set-grid{grid-template-columns:1fr}
+  .today-grid{grid-template-columns:1fr 1fr}
+  main{padding:18px 16px 60px}
+  .topbar{padding:12px 0;margin-left:16px;margin-right:16px}
+  .city-strip{margin:0 16px;height:150px}
+  .wb-item{border-right:0;min-width:45%}
+  .live-clock{font-size:44px}
+}
+@media(max-width:520px){.today-grid{grid-template-columns:1fr}.table-scroll{overflow-x:auto}}
+.table-scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<svg class="route-bg" viewBox="0 0 1200 220" preserveAspectRatio="none" fill="none">
+  <path d="M-20 190 C 200 120, 340 210, 560 150 S 950 60, 1250 110" stroke="#4cc9ec" stroke-opacity=".14" stroke-width="2" stroke-dasharray="14 12"/>
+  <path d="M-20 90 C 260 150, 520 40, 780 90 S 1080 170, 1250 140" stroke="#ffd24a" stroke-opacity=".1" stroke-width="2" stroke-dasharray="10 14"/>
+</svg>
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-badge">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 L9 11 L13 15 L21 6"/><path d="M21 6 L21 11 M21 6 L16 6"/><circle cx="5" cy="20" r="1.6" fill="currentColor"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">RUNLOG</div>
+      <div class="brand-sub">多平台外送日誌</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" data-view="dash">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 0 0-9 9c0 2 .7 3.9 2 5.4L12 12l7 5.4A8.9 8.9 0 0 0 21 12a9 9 0 0 0-9-9Z"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
+      <span><b>總覽</b><i>COCKPIT</i></span>
+    </button>
+    <button class="nav-btn" data-view="dels">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2h12v20l-2-1.5L14 22l-2-1.5L10 22l-2-1.5L6 22V2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+      <span><b>跑單紀錄</b><i>ORDERS</i></span>
+    </button>
+    <button class="nav-btn" data-view="shifts">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      <span><b>班次工時</b><i>SHIFTS</i></span>
+    </button>
+    <button class="nav-btn" data-view="cal">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <span><b>日曆</b><i>CALENDAR</i></span>
+    </button>
+    <button class="nav-btn" data-view="ana">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V9M10 20V4M16 20v-8M22 20H2"/></svg>
+      <span><b>收入分析</b><i>ANALYTICS</i></span>
+    </button>
+    <button class="nav-btn" data-view="set">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h13M21 18h-1"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="19" cy="18" r="2"/></svg>
+      <span><b>設定與資料</b><i>SETTINGS</i></span>
+    </button>
+  </nav>
+
+  <div class="side-foot">
+    <div class="side-shift">
+      <div class="ss-top"><span class="dot" id="sideDot"></span><span id="sideState">離線</span><span class="mono" id="sideTimer">--:--:--</span></div>
+      <div class="ss-label"><span>本週目標</span><span class="mono" id="sideGoalTxt">$0 / $800</span></div>
+      <div class="bar"><i id="sideGoalBar"></i></div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <button class="hamb" id="hamb" title="選單"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    <div class="top-date" id="topDate">—</div>
+    <div class="top-right">
+      <div class="pill"><span class="dot" id="topDot"></span><span id="topPillTxt">離線</span><span class="mono" id="topPillTime"></span></div>
+      <button class="pill" id="fbPill" title="Firebase 同步狀態">☁ 未連線</button>
+      <button class="pill" id="themeBtn" title="切換日光／夜間模式">🌙</button>
+      <button class="btn btn-ghost btn-sm" id="btnDayEntry">📅 當日快記</button>
+      <button class="btn btn-primary btn-sm" id="btnQuickAdd">＋ 記一單</button>
+    </div>
+  </header>
+
+  <div class="city-strip" aria-hidden="true">
+    <div class="sun-disc"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+  <svg viewBox="0 0 1200 170" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <linearGradient id="beamG" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#fff8d8" stop-opacity=".5"/><stop offset="1" stop-color="#fff8d8" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <circle class="star" cx="90" cy="18" r="1.3" fill="#cfe6f5"/>
+    <circle class="star" cx="300" cy="12" r="1.1" fill="#cfe6f5" style="animation-delay:.7s"/>
+    <circle class="star" cx="520" cy="24" r="1.4" fill="#cfe6f5" style="animation-delay:1.4s"/>
+    <circle class="star" cx="700" cy="10" r="1.1" fill="#cfe6f5" style="animation-delay:.3s"/>
+    <circle class="star" cx="930" cy="20" r="1.3" fill="#cfe6f5" style="animation-delay:1.9s"/>
+    <circle class="star" cx="1120" cy="14" r="1.1" fill="#cfe6f5" style="animation-delay:1.1s"/>
+    <g class="bldg">
+      <rect x="0" y="78" width="70" height="52"/><rect x="80" y="64" width="34" height="66"/>
+      <rect x="118" y="88" width="46" height="42"/>
+      <rect x="209" y="10" width="3" height="28"/><rect x="204" y="36" width="13" height="7" rx="3"/>
+      <ellipse cx="210.5" cy="52" rx="15" ry="9"/><polygon points="205,58 216,58 213,130 208,130"/>
+      <rect x="250" y="70" width="40" height="60"/><rect x="300" y="84" width="56" height="46"/>
+      <rect x="370" y="60" width="30" height="70"/><rect x="410" y="90" width="60" height="40"/>
+      <rect x="480" y="74" width="36" height="56"/><rect x="530" y="88" width="52" height="42"/>
+      <rect x="600" y="66" width="30" height="64"/><rect x="640" y="86" width="58" height="44"/>
+      <rect x="710" y="76" width="40" height="54"/><rect x="760" y="92" width="50" height="38"/>
+      <rect x="820" y="70" width="34" height="60"/><rect x="860" y="88" width="56" height="42"/>
+      <rect x="1120" y="80" width="44" height="50"/><rect x="1170" y="68" width="30" height="62"/>
+    </g>
+    <g class="win">
+      <rect x="88" y="72" width="3" height="4"/><rect x="96" y="84" width="3" height="4"/>
+      <rect x="378" y="70" width="3" height="4"/><rect x="385" y="92" width="3" height="4"/>
+      <rect x="608" y="76" width="3" height="4"/><rect x="828" y="80" width="3" height="4"/>
+      <rect x="1130" y="90" width="3" height="4"/><rect x="1178" y="78" width="3" height="4"/>
+    </g>
+    <g>
+      <rect x="1015" y="88" width="7" height="42" fill="#4a2530"/><rect x="1082" y="88" width="7" height="42" fill="#4a2530"/>
+      <path d="M1000,78 Q1053,62 1106,78 L1098,86 Q1053,72 1008,86 Z" fill="#58242e"/>
+      <path d="M1008,94 Q1053,82 1098,94 L1092,100 Q1053,90 1014,100 Z" fill="#58242e"/>
+      <rect x="1038" y="100" width="30" height="12" fill="#58242e"/>
+      <text class="sign" x="1053" y="109.5" font-size="8" fill="#ffd24a" text-anchor="middle">唐人街</text>
+    </g>
+    <g>
+      <rect x="40" y="100" width="150" height="40" fill="#101820" stroke="#223140"/>
+      <rect x="48" y="86" width="134" height="16" rx="3" fill="#201204" stroke="#ffa130"/>
+      <text class="sign flicker" x="115" y="98" font-size="10" letter-spacing="3" fill="#ffa130" text-anchor="middle" font-weight="700">SHAWARMA</text>
+      <rect x="46" y="104" width="138" height="5" fill="#ffa130"/>
+      <line x1="49" y1="110" x2="181" y2="110" stroke="#ffa130" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
+      <rect x="56" y="118" width="64" height="22" fill="#2a1a08"/><rect x="56" y="118" width="64" height="22" fill="#ff9d2e" opacity=".14"/>
+      <g transform="translate(88,122)"><polygon class="spit" points="-4,0 4,0 0,15" fill="#c97a2a"/><line x1="0" y1="-3" x2="0" y2="17" stroke="#8a8a8a" stroke-width="1"/></g>
+      <rect x="150" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
+    </g>
+    <g>
+      <rect x="250" y="100" width="150" height="40" fill="#101820" stroke="#223140"/>
+      <rect x="258" y="86" width="134" height="16" rx="3" fill="#7a1216"/>
+      <path d="M270,99 c0,-10 7,-10 8,0 c1,-10 7,-10 7,0" stroke="#ffd24a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <text class="sign" x="300" y="98.5" font-size="9.5" fill="#ffd24a" font-weight="700">McDonald's</text>
+      <rect x="256" y="104" width="138" height="5" fill="#7a1216"/>
+      <line x1="259" y1="110" x2="391" y2="110" stroke="#7a1216" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
+      <rect x="266" y="118" width="64" height="22" fill="#2a1a08"/><rect x="266" y="118" width="64" height="22" fill="#ffd24a" opacity=".12"/>
+      <rect x="360" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
+    </g>
+    <g>
+      <rect x="460" y="100" width="160" height="40" fill="#101820" stroke="#223140"/>
+      <rect x="468" y="86" width="144" height="16" rx="8" fill="#b01e2e"/>
+      <text class="sign" x="540" y="98" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="700" font-style="italic">Tim Hortons</text>
+      <rect x="466" y="104" width="148" height="5" fill="#b01e2e"/>
+      <line x1="469" y1="110" x2="611" y2="110" stroke="#b01e2e" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
+      <rect x="476" y="118" width="70" height="22" fill="#2a1a08"/><rect x="476" y="118" width="70" height="22" fill="#ff9d2e" opacity=".14"/>
+      <g transform="translate(511,126)"><rect x="-4" y="0" width="8" height="9" rx="1.5" fill="#b01e2e"/><rect x="-4" y="2" width="8" height="2" fill="#fff"/>
+        <path class="steam" d="M-1,-2 c1,-2 -1,-3 0,-5" stroke="#fff" stroke-width="1.2" fill="none"/>
+        <path class="steam" d="M2,-2 c1,-2 -1,-3 0,-5" stroke="#fff" stroke-width="1.2" fill="none" style="animation-delay:1.2s"/></g>
+      <rect x="580" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
+    </g>
+    <g>
+      <rect x="680" y="100" width="160" height="40" fill="#101820" stroke="#223140"/>
+      <rect x="688" y="86" width="144" height="16" rx="3" fill="#06281f" stroke="#17d17c"/>
+      <text class="sign" x="760" y="98" font-size="10" letter-spacing="2" fill="#17d17c" text-anchor="middle" font-weight="700">BAR BURRITO</text>
+      <rect x="686" y="104" width="148" height="5" fill="#17d17c"/>
+      <line x1="689" y1="110" x2="831" y2="110" stroke="#17d17c" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
+      <rect x="696" y="118" width="70" height="22" fill="#12241c"/><rect x="696" y="118" width="70" height="22" fill="#17d17c" opacity=".12"/>
+      <g transform="translate(731,129)"><rect x="-9" y="-4" width="18" height="8" rx="4" fill="#d9b98a"/><rect x="-9" y="-4" width="7" height="8" rx="3.5" fill="#b01e2e"/></g>
+      <rect x="800" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
+    </g>
+    <g>
+      <rect x="880" y="104" width="100" height="36" fill="#101820" stroke="#223140"/>
+      <rect x="886" y="90" width="88" height="14" rx="3" fill="#06282e" stroke="#4cc9ec"/>
+      <text class="sign flicker" x="930" y="100.5" font-size="9" letter-spacing="1" fill="#4cc9ec" text-anchor="middle" font-weight="700" style="animation-delay:2.5s">⚡ E-CHARGE</text>
+      <rect x="896" y="116" width="30" height="24" fill="#0d1a20"/><rect x="940" y="116" width="30" height="24" fill="#0d1a20"/>
+    </g>
+    <rect x="0" y="140" width="1200" height="30" fill="#0a0e12"/>
+    <rect x="0" y="140" width="1200" height="2" fill="#223140"/>
+    <line class="road-dash" x1="0" y1="157" x2="1200" y2="157" stroke="#ffd24a" stroke-width="3" stroke-dasharray="24 28" opacity=".5"/>
+    <g class="rider-move">
+      <g transform="translate(0,158) scale(.95)">
+        <polygon points="38,-15 68,-6 68,-21" fill="url(#beamG)"/>
+        <g transform="translate(0,0)"><g class="wheel"><circle r="9" fill="#0a0e12" stroke="#33455a" stroke-width="2.5"/><path d="M-6,0H6M0,-6V6M-4.2,-4.2L4.2,4.2M-4.2,4.2L4.2,-4.2" stroke="#33455a" stroke-width="1.4"/></g></g>
+        <g transform="translate(36,0)"><g class="wheel"><circle r="9" fill="#0a0e12" stroke="#33455a" stroke-width="2.5"/><path d="M-6,0H6M0,-6V6M-4.2,-4.2L4.2,4.2M-4.2,4.2L4.2,-4.2" stroke="#33455a" stroke-width="1.4"/></g></g>
+        <path d="M0,0 L10,-14 L28,-14 L36,0 M10,-14 L16,-2 L0,0 M28,-14 L31,-22 L34,-23" stroke="#4cc9ec" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="16" cy="-2" r="2.5" fill="#33455a"/>
+        <rect x="17" y="-13" width="9" height="6" rx="1" fill="#0f1a22" stroke="#4cc9ec" stroke-width="1"/>
+        <path d="M21,-12 l2,0 l-1.4,2.4 l2,0 l-3.4,3.6 l1,-2.8 l-2,0 z" fill="#ffd24a"/>
+        <path d="M10,-14 L8,-20" stroke="#4cc9ec" stroke-width="2.5"/><rect x="3" y="-23" width="10" height="3" rx="1.5" fill="#1b2733"/>
+        <path d="M-2,-20 L0,0 M-16,-20 L-2,-20" stroke="#33455a" stroke-width="2"/>
+        <rect x="-16" y="-32" width="14" height="12" rx="2" fill="#ffd24a" stroke="#b98a12"/>
+        <path d="M-8.5,-30 l3,0 l-1.6,3.4 l3,0 l-5,5.6 l1.4,-4 l-2.6,0 z" fill="#221a03"/>
+        <g class="rider-body">
+          <path d="M6,-24 L12,-14 L13,-4" stroke="#22303d" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M6,-24 L15,-16 L19,-5" stroke="#22303d" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M6,-24 L16,-37" stroke="#ff5a3c" stroke-width="5" stroke-linecap="round"/>
+          <path d="M15,-34 L23,-28 L30,-22" stroke="#ff5a3c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <circle cx="20.5" cy="-41.5" r="4.6" fill="#e8b98d"/>
+          <path d="M15.7,-42.5 a4.9,4.9 0 0 1 9.6,0 l-1,1.6 h-7.6 z" fill="#e8eef4"/>
+          <line x1="22" y1="-40.5" x2="25.5" y2="-40.5" stroke="#22303d" stroke-width="1.6"/>
+        </g>
+        <circle cx="37" cy="-13" r="1.6" fill="#fffbe0"/>
+      </g>
+    </g>
+  </svg>
+  </div>
+
+  <main>
+    <section class="view active" id="view-dash">
+      <div class="page-head">
+        <div><h1 id="greet">—</h1><div class="sub" id="dateLine">—</div></div>
+        <div class="head-chips">
+          <span class="chip">🔥 連續出車 <b class="mono" id="chipStreak">0</b> 天</span>
+          <span class="chip">📦 累計 <b class="mono" id="chipAllOrders">0</b> 單</span>
+        </div>
+      </div>
+
+      <div class="dash-hero">
+        <div class="card shift-card">
+          <h3>目前班次 <span class="en">LIVE SHIFT</span>
+            <span class="right"><span class="pill" style="padding:3px 10px"><span class="dot" id="shiftDot"></span><span id="shiftBadge">未上線</span></span></span>
+          </h3>
+          <div class="live-clock" id="liveClock">00:00:00</div>
+          <div class="shift-meta" id="shiftMeta">按下「開始跑單」計時上線</div>
+          <div class="shift-btns">
+            <button class="btn btn-primary" id="btnStart">▶ 開始跑單</button>
+            <button class="btn btn-ghost" id="btnBreak" disabled>☕ 休息一下</button>
+            <button class="btn btn-danger" id="btnEnd" disabled>⏹ 收工</button>
+          </div>
+          <div class="shift-chips">
+            <span class="chip">今日上線 <b id="chipOnline">0m</b></span>
+            <span class="chip">今日活躍 <b id="chipActive">0m</b></span>
+            <span class="chip">休息 <b id="chipBreak">0m</b></span>
+          </div>
+        </div>
+
+        <div class="today-grid">
+          <div class="card tile accent"><span class="lab"><em>TODAY</em>今日收入</span><span class="val money" id="tIncome">$0.00</span></div>
+          <div class="card tile"><span class="lab"><em>ORDERS</em>今日單數</span><span class="val" id="tOrders">0</span></div>
+          <div class="card tile"><span class="lab"><em>$/HR</em>今日時薪</span><span class="val money" id="tHourly">—</span></div>
+          <div class="card tile"><span class="lab"><em>AVG</em>平均每單</span><span class="val money" id="tAvg">—</span></div>
+        </div>
+      </div>
+
+      <div class="card week-band">
+        <div class="wb-item"><div class="lab">本週收入 WEEK PAY</div><div class="val money" id="wIncome">$0.00</div></div>
+        <div class="wb-item"><div class="lab">上線時間 ONLINE</div><div class="val" id="wOnline">0h</div></div>
+        <div class="wb-item"><div class="lab">活躍時間 ACTIVE</div><div class="val" id="wActive">0h</div></div>
+        <div class="wb-item"><div class="lab">平均時薪 AVG $/HR</div><div class="val money" id="wHourly">—</div></div>
+        <div class="wb-item">
+          <div class="lab">週目標進度 <span class="mono" id="wRange"></span></div>
+          <div style="display:flex;align-items:center;gap:11px;margin-top:7px">
+            <div class="bar" style="flex:1;height:10px"><i id="goalBar"></i></div>
+            <span class="mono" id="goalTxt" style="font-size:12.5px;color:var(--dim)">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>本週每日收入 <span class="en">DAILY EARNINGS</span></h3>
+          <div class="wchart" id="weekBars"></div>
+        </div>
+        <div class="card">
+          <h3>平台占比 <span class="en">MIX</span></h3>
+          <div class="donut-wrap">
+            <div class="donut">
+              <svg width="150" height="150" viewBox="0 0 120 120" id="donutSvg"></svg>
+              <div class="dz"><span class="money" id="donutCenter">$0</span><small>本週總計</small></div>
+            </div>
+            <div class="legend" id="donutLegend"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>最近跑單 <span class="en">RECENT</span><span class="right"><button class="btn btn-ghost btn-sm" onclick="switchView('dels')">查看全部 →</button></span></h3>
+        <div id="recentList"></div>
+      </div>
+
+      <div class="empty-box" id="emptyCard" style="display:none">
+        <div class="big">🛵 準備出發！</div>
+        <p class="dim" style="margin-bottom:16px">目前還沒有任何資料。可以先載入示範資料看看效果，或直接記錄你的第一單。</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btnDemo1">✨ 載入示範資料</button>
+          <button class="btn btn-ghost" id="btnFirst">＋ 新增第一筆外送</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-dels">
+      <div class="page-head">
+        <div><h1>跑單紀錄</h1><div class="sub">每一單都算數。記錄報酬、小費與里程。</div></div>
+        <div class="head-chips"><button class="btn btn-primary" id="btnAddDl">＋ 新增外送</button></div>
+      </div>
+      <div class="card">
+        <div class="filter-row">
+          <div id="platChips"></div>
+          <select id="delRange" class="inline" style="margin-left:auto;max-width:150px">
+            <option value="all">全部時間</option><option value="week">本週</option><option value="today">今天</option>
+          </select>
+        </div>
+        <div class="stats-row" id="delStats"></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>日期</th><th>平台</th><th>店家／備註</th><th>里程</th><th>時長</th><th>小費</th><th>總計</th><th></th></tr></thead>
+            <tbody id="delBody"></tbody>
+          </table>
+        </div>
+        <div id="delEmpty" class="dim" style="text-align:center;padding:26px;display:none">這個篩選條件下還沒有紀錄</div>
+      </div>
+    </section>
+
+    <section class="view" id="view-shifts">
+      <div class="page-head">
+        <div><h1>班次工時</h1><div class="sub">每日上線時間、活躍時間與休息，一覽無遺。</div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>手動補登班次 <span class="en">MANUAL ENTRY</span></h3>
+        <div class="form-grid">
+          <div><label>日期</label><input type="date" id="sDate"></div>
+          <div><label>上線時間</label><input type="time" id="sStart" value="10:30"></div>
+          <div><label>收工時間</label><input type="time" id="sEnd" value="20:30"></div>
+          <div><label>休息（分鐘）</label><input type="number" id="sBreak" min="0" value="30"></div>
+          <div><button class="btn btn-primary" id="sAdd" style="width:100%">＋ 補登</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>近 14 天 <span class="en">LAST 14 DAYS</span></h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>日期</th><th>時段</th><th>上線</th><th>活躍</th><th>休息</th><th>單數</th><th>收入</th><th>時薪</th></tr></thead>
+            <tbody id="shiftList"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-cal">
+      <div class="page-head">
+        <div><h1>日曆</h1><div class="sub">一個月的身影：哪天跑最多、賺多少，一眼看懂。</div></div>
+        <div class="head-chips">
+          <button class="btn btn-ghost btn-sm" id="calPrev">← 上月</button>
+          <button class="btn btn-ghost btn-sm" id="calToday">今天</button>
+          <button class="btn btn-ghost btn-sm" id="calNext">下月 →</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <h3 id="calLabel">—</h3>
+        <div class="stats-row" id="calMonthStats"></div>
+        <div class="cal-grid">
+          <span class="cal-dow">一</span><span class="cal-dow">二</span><span class="cal-dow">三</span><span class="cal-dow">四</span><span class="cal-dow">五</span><span class="cal-dow">六</span><span class="cal-dow">日</span>
+        </div>
+        <div class="cal-grid" id="calGrid" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <h3>當日詳情 <span class="en" id="calDayTitle">DAY</span>
+          <span class="right"><button class="btn btn-primary btn-sm" id="calAdd">＋ 記一單（此日）</button></span>
+        </h3>
+        <div class="stats-row" id="calDayStats"></div>
+        <div id="calDayShift" class="tiny" style="margin-bottom:8px"></div>
+        <div id="calDayList"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-ana">
+      <div class="page-head">
+        <div><h1>收入分析</h1><div class="sub">哪個平台最值得跑？用數字說話。</div></div>
+        <div class="head-chips" id="anRangeWrap">
+          <button class="fchip an-btn on" data-r="week">本週</button>
+          <button class="fchip an-btn" data-r="last">上週</button>
+          <button class="fchip an-btn" data-r="all">全部</button>
+        </div>
+      </div>
+      <div class="card ana-strip" id="anaStrip"></div>
+      <div class="plat-cards" id="platCards"></div>
+      <div class="two-col">
+        <div class="card">
+          <h3>車輛成本估算 <span class="en">VEHICLE COST</span></h3>
+          <div class="vrow"><span>總里程</span><b id="vehMiles">0 km</b></div>
+          <div class="vrow"><span>每公里收入</span><b id="vehPerMile">—</b></div>
+          <div class="vrow"><span>預估車輛成本 <span class="tiny" id="vehRate"></span></span><b class="neg" id="vehCost">—</b></div>
+          <div class="vrow"><span>扣除成本後淨收益</span><b id="vehNet">—</b></div>
+          <p class="tiny" style="margin-top:10px">＊ 成本 = 里程 × 每公里成本（含快記里程，可在設定調整單價）</p>
+        </div>
+        <div class="card">
+          <h3>快速洞察 <span class="en">INSIGHTS</span></h3>
+          <div id="insightList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-set">
+      <div class="page-head"><div><h1>設定與資料</h1><div class="sub">所有資料只存在你這台裝置的瀏覽器裡（開啟同步後會加上雲端）。</div></div></div>
+      <div class="set-grid">
+        <div class="card">
+          <h3>個人設定 <span class="en">PROFILE</span></h3>
+          <div class="form-grid">
+            <div><label>稱呼</label><input id="setName"></div>
+            <div><label>每週目標（$）</label><input type="number" id="setGoal" min="0"></div>
+            <div><label>每公里成本（$）</label><input type="number" id="setCpm" step="0.01" min="0"></div>
+          </div>
+          <button class="btn btn-primary" id="btnSaveProfile" style="margin-top:14px">儲存設定</button>
+        </div>
+        <div class="card">
+          <h3>平台管理 <span class="en">PLATFORMS</span></h3>
+          <div id="platList"></div>
+          <div class="form-grid" style="margin-top:14px">
+            <div><label>新平台名稱</label><input id="npName" placeholder="例如 Grubhub"></div>
+            <div><label>顏色</label><input type="color" id="npColor" value="#8f7bff" style="height:41px;padding:4px"></div>
+            <div><button class="btn btn-ghost" id="npAdd" style="width:100%">＋ 新增</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>資料備份 <span class="en">BACKUP</span></h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-ghost" id="btnJson">⬇ 匯出備份 (JSON)</button>
+            <button class="btn btn-ghost" id="btnCsv">⬇ 匯出外送表 (CSV)</button>
+            <button class="btn btn-ghost" id="btnImport">⬆ 匯入備份</button>
+            <input type="file" id="importFile" accept=".json" style="display:none">
+          </div>
+          <p class="tiny" style="margin-top:12px">換手機／換電腦前記得匯出 JSON 備份，到新裝置匯入即可無縫接軌。</p>
+        </div>
+        <div class="card">
+          <h3>危險地帶 <span class="en">DANGER ZONE</span></h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-ghost" id="btnDemo">✨ 載入示範資料</button>
+            <button class="btn btn-danger" id="btnReset">🗑 清除全部資料</button>
+          </div>
+        </div>
+        <div class="card" style="grid-column:1/-1">
+          <h3>Firebase 雲端同步 <span class="en">CLOUD SYNC</span>
+            <span class="right"><span class="chip"><span class="dot" id="fbDot"></span><span id="fbStatus">未連線</span></span></span>
+          </h3>
+          <div class="form-grid">
+            <div style="flex:1">
+              <label>同步金鑰（文件 ID，越亂碼越安全）</label>
+              <input id="fbDocKey" class="mono" placeholder="main">
+            </div>
+            <div style="display:flex;align-items:end">
+              <label style="margin:0;display:flex;align-items:center;gap:7px">
+                <input type="checkbox" id="fbAuto" style="width:auto"> 即時自動同步
+              </label>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+            <button class="btn btn-primary btn-sm" id="fbSaveCfg">儲存設定</button>
+            <button class="btn btn-ghost btn-sm" id="fbConnect">☁ 開啟同步</button>
+            <button class="btn btn-ghost btn-sm" id="fbDisconnect">中斷</button>
+            <button class="btn btn-ghost btn-sm" id="fbPush">⬆ 上傳</button>
+            <button class="btn btn-ghost btn-sm" id="fbPull">⬇ 下載</button>
+          </div>
+          <p class="tiny" style="margin-top:12px">⚙ Firebase config 已硬編碼在 HTML 中，換裝置不用貼。<br>
+          Firestore 規則需開放讀寫：<span class="mono">match /runlog/{d} { allow read, write: if true; }</span></p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ── 當日快記 Modal ── -->
+<div class="overlay" id="dayModal">
+  <div class="modal" style="max-width:560px">
+    <h2>📅 當日快記</h2>
+    <div class="m-grid">
+      <div><label>日期</label><input type="date" id="dDate"></div>
+      <div><label>備註（選填）</label><input id="dNote" placeholder="例如：下雨單多、尖峰爽"></div>
+      <div class="full">
+        <label>各平台單數與收入（金額含小費）</label>
+        <div id="dRows" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button class="btn btn-ghost btn-sm" id="dAddRow" style="margin-top:8px">＋ 加一個平台</button>
+      </div>
+      <div><label>上線（小時）</label><input type="number" id="dOnH" min="0" value="0"></div>
+      <div><label>上線（分鐘）</label><input type="number" id="dOnM" min="0" max="59" value="0"></div>
+      <div><label>休息（分鐘）</label><input type="number" id="dBrM" min="0" value="0"></div>
+      <div><label>總里程 km（選填）</label><input type="number" id="dKm" step="0.1" min="0" placeholder="0"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="dCancel">取消</button>
+      <button class="btn btn-primary" id="dSave">儲存當日資料</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 新增／編輯外送 Modal ── -->
+<div class="overlay" id="dlModal">
+  <div class="modal">
+    <h2 id="fTitle">記一單</h2>
+    <div class="m-grid">
+      <div><label>日期</label><input type="date" id="fDate"></div>
+      <div><label>平台</label><select id="fPlatform"></select></div>
+      <div class="full"><label>店家／取餐地點</label><input id="fStore" placeholder="例如 Panda Express - Main St."></div>
+      <div><label>報酬（$，不含小費）</label><input type="number" step="0.01" min="0" id="fPay" placeholder="7.50"></div>
+      <div><label>小費（$）</label><input type="number" step="0.01" min="0" id="fTip" placeholder="3.00"></div>
+      <div><label>里程（km）</label><input type="number" step="0.1" min="0" id="fMiles" placeholder="4.2"></div>
+      <div><label>花費時間（分鐘）</label><input type="number" min="0" id="fMin" placeholder="25"></div>
+      <div class="full"><label>備註</label><input id="fNote" placeholder="長距離、大樓難停…"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="fCancel">取消</button>
+      <button class="btn btn-primary" id="fSave">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 確認 Modal ── -->
+<div class="overlay" id="cModal">
+  <div class="modal" style="max-width:400px">
+    <h2>確定嗎？</h2>
+    <p class="dim" id="cMsg" style="margin-bottom:4px"></p>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="cCancel">取消</button>
+      <button class="btn btn-danger" id="cOk">確定執行</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap"></div>
+
+<script>
+/* ═══════════════ 工具 ═══════════════ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const pad=n=>String(n).padStart(2,'0');
+const dk=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const todayKey=()=>dk(new Date());
+const parseKey=k=>{const[a,b,c]=k.split('-').map(Number);return new Date(a,b-1,c)};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const safeColor=c=>{const v=String(c??'');return /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)?v:'#7a8a97'};
+const num=v=>{const n=parseFloat(v);return isFinite(n)?n:0};
+const ordOf=d=>(typeof d.orders==='number'?d.orders:1);
+const fmtM=n=>{const v=num(n);return '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})};
+const fmt0=n=>{const v=num(n);return '$'+Math.round(v).toLocaleString('en-US')};
+const fmtDur=min=>{min=Math.max(0,Math.round(num(min)));if(min<60)return min+'m';return Math.floor(min/60)+'h '+pad(min%60)+'m'};
+const fmtHMS=ms=>{const s=Math.max(0,Math.floor(num(ms)/1000));return pad(Math.floor(s/3600))+':'+pad(Math.floor(s/60)%60)+':'+pad(s%60)};
+const fmtTime=ts=>{const d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes())};
+const WEEK_TW=['日','一','二','三','四','五','六'];
+const fmtDateTw=k=>{const d=parseKey(k);return (d.getMonth()+1)+'/'+d.getDate()+' 週'+WEEK_TW[d.getDay()]};
+
+/* ═══════════════ 主題切換 ═══════════════ */
+const THEME_KEY='runlog.theme';
+function applyTheme(t){document.documentElement.dataset.theme=t;
+  const btn=document.getElementById('themeBtn');
+  if(btn){btn.textContent=t==='light'?'☀️':'🌙';
+    btn.title=t==='light'?'切換夜間模式':'切換日光模式'}
+  try{localStorage.setItem(THEME_KEY,t)}catch(e){}}
+try{applyTheme(localStorage.getItem(THEME_KEY)||'dark')}catch(e){applyTheme('dark')}
+
+/* ═══════════════ 資料層 ═══════════════ */
+const KEY='runlog.v1';
+function defaultDB(){return{
+  profile:{name:'小馬',goal:800,cpm:0.42},
+  platforms:[
+    {id:'dd',name:'DoorDash',color:'#ff5a3c'},
+    {id:'ue',name:'Uber Eats',color:'#17d17c'},
+    {id:'pd',name:'Panda Delivery',color:'#ffa130'}
+  ],
+  shifts:[],deliveries:[],live:null
+}}
+function load(){try{const r=localStorage.getItem(KEY);if(!r)return defaultDB();const d=JSON.parse(r);return Object.assign(defaultDB(),d,{profile:Object.assign(defaultDB().profile,d.profile||{})})}catch(e){return defaultDB()}}
+let db=load();
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(db));fbSchedulePush()};
+const plat=id=>db.platforms.find(p=>p.id===id)||{name:'(已刪平台)',color:'#7a8a97'};
+
+/* ═══════════════ 計算 ═══════════════ */
+const mondayOf=d=>{const x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x};
+const weekDays=(off=0)=>{const m=mondayOf(new Date());m.setDate(m.getDate()+off*7);return[...Array(7)].map((_,i)=>{const d=new Date(m);d.setDate(m.getDate()+i);return d})};
+const shiftRec=date=>db.shifts.find(s=>s.date===date);
+const incomeOn=k=>db.deliveries.filter(d=>d.date===k).reduce((a,d)=>a+num(d.pay)+num(d.tip),0);
+const ordersOn=k=>db.deliveries.filter(d=>d.date===k).reduce((a,d)=>a+ordOf(d),0);
+const activeMinOf=s=>Math.max(0,num(s.onlineMin)-num(s.breakMin));
+const sumActive=days=>days.reduce((a,d)=>{const s=shiftRec(dk(d));return a+(s?activeMinOf(s):0)},0);
+const sumOnline=days=>days.reduce((a,d)=>{const s=shiftRec(dk(d));return a+(s?num(s.onlineMin):0)},0);
+const sumShiftKm=days=>days.reduce((a,d)=>{const s=shiftRec(dk(d));return a+(s?num(s.km):0)},0);
+function liveParts(){const l=db.live;if(!l)return{on:0,br:0,live:false};
+  const on=Date.now()-l.startTs, br=l.breakMs+(l.breakStart?Date.now()-l.breakStart:0);return{on,br,live:true,startTs:l.startTs,breakStart:l.breakStart}}
+function streak(){let n=0;const d=new Date();const has=k=>db.deliveries.some(x=>x.date===k)||db.shifts.some(s=>s.date===k);
+  if(!has(dk(d)))d.setDate(d.getDate()-1);while(has(dk(d))&&n<3650){n++;d.setDate(d.getDate()-1)}return n}
+function addShiftSeg(date,s,e,onMin,brMin){let r=shiftRec(date);
+  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,km:0};db.shifts.push(r)}
+  if(!r.segs)r.segs=[];
+  r.segs.push({s,e});r.onlineMin=num(r.onlineMin)+onMin;r.breakMin=num(r.breakMin)+brMin;save();return r}
+
+/* ═══════════════ UI 小工具 ═══════════════ */
+function toast(msg,type=''){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
+  $('#toastWrap').append(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='.4s';setTimeout(()=>t.remove(),400)},2800)}
+let confirmCb=null;
+function askConfirm(msg,cb){$('#cMsg').textContent=msg;confirmCb=cb;$('#cModal').classList.add('open')}
+$('#cOk').onclick=()=>{$('#cModal').classList.remove('open');if(confirmCb)confirmCb()};
+$('#cCancel').onclick=()=>{
+  $('#cModal').classList.remove('open');
+  if(fbCancelCb){const c=fbCancelCb;fbCancelCb=null;setTimeout(c,50)}
+};
+function countUp(el,target,fmt){target=num(target);const from=parseFloat(el.dataset.v||0),t0=performance.now(),dur=650;
+  function step(t){const p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3),v=from+(target-from)*e;
+    el.textContent=fmt(v);if(p<1)requestAnimationFrame(step);else{el.textContent=fmt(target);el.dataset.v=target}}
+  requestAnimationFrame(step)}
+function download(name,text,type){const b=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+
+/* ═══════════════ 導覽 ═══════════════ */
+let curView='dash';
+window.switchView=v=>{curView=v;$$('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  $$('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
+  document.body.classList.remove('side-open');renderCurrent()};
+$$('.nav-btn').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+$('#hamb').onclick=()=>document.body.classList.toggle('side-open');
+document.addEventListener('click',e=>{
+  if(document.body.classList.contains('side-open')&&!e.target.closest('#sidebar')&&!e.target.closest('#hamb')){
+    document.body.classList.remove('side-open');
+  }
+});
+$('#themeBtn').onclick=()=>applyTheme(document.documentElement.dataset.theme==='light'?'dark':'light');
+function renderCurrent(){({dash:renderDash,dels:renderDels,shifts:renderShifts,cal:renderCal,ana:renderAna,set:renderSet})[curView]();tick()}
+
+/* ═══════════════ 班次計時 ═══════════════ */
+$('#btnStart').onclick=()=>{if(db.live)return;db.live={startTs:Date.now(),breakMs:0,breakStart:null};save();
+  toast('上線！開始接單吧 🛵','ok');syncShiftUI();renderCurrent()};
+$('#btnBreak').onclick=()=>{const l=db.live;if(!l)return;
+  if(l.breakStart){l.breakMs+=Date.now()-l.breakStart;l.breakStart=null;toast('繼續跑單 💨','ok')}
+  else{l.breakStart=Date.now();toast('休息中，時間照算但不計活躍 ☕')}
+  save();syncShiftUI();tick()};
+$('#btnEnd').onclick=()=>{const l=db.live;if(!l)return;
+  if(l.breakStart){l.breakMs+=Date.now()-l.breakStart;l.breakStart=null}
+  const onMin=Math.round((Date.now()-l.startTs)/60000),brMin=Math.round(l.breakMs/60000);
+  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(Date.now()),onMin,brMin);
+  db.live=null;save();toast(`收工！本次上線 ${fmtDur(onMin)}、活躍 ${fmtDur(onMin-brMin)} 🏁`,'ok');
+  syncShiftUI();renderAll()};
+function syncShiftUI(){const l=db.live,on=!!l;
+  $('#btnStart').disabled=on;$('#btnBreak').disabled=!on;$('#btnEnd').disabled=!on;
+  $('#btnBreak').innerHTML=(l&&l.breakStart)?'▶ 繼續跑單':'☕ 休息一下';
+  $('#shiftBadge').textContent=on?(l.breakStart?'休息中':'執勤中'):'未上線';
+  $('#shiftDot').className='dot'+(on?(l.breakStart?' br':' on'):'')}
+
+setInterval(tick,1000);
+function tick(){const now=new Date(),p=liveParts(),isToday=!p.live||dk(new Date(p.startTs))===todayKey();
+  $('#topDate').textContent=dk(now)+' 週'+WEEK_TW[now.getDay()];
+  const rec=shiftRec(todayKey()),baseOn=(rec?rec.onlineMin:0)*60000,baseBr=(rec?rec.breakMin:0)*60000;
+  const onMs=baseOn+(isToday?p.on:0),brMs=baseBr+(isToday?p.br:0);
+  $('#liveClock').textContent=p.live?fmtHMS(p.on):'00:00:00';
+  $('#liveClock').style.color=p.live?'var(--sun)':'var(--faint)';
+  
+  if(!p.live){
+    $('#shiftMeta').textContent='按下「開始跑單」計時上線';
+  } else if(p.breakStart){
+    $('#shiftMeta').textContent=`☕ 休息中 · 已休 ${fmtDur(p.br/60000)}（自 ${fmtTime(p.startTs)} 上線）`;
+  } else if(p.br > 0){
+    $('#shiftMeta').textContent=`自 ${fmtTime(p.startTs)} 上線 · 已休 ${fmtDur(p.br/60000)}`;
+  } else {
+    $('#shiftMeta').textContent=`自 ${fmtTime(p.startTs)} 上線 · 尚未休息`;
+  }
+
+  $('#chipOnline').textContent=fmtDur(onMs/60000);
+  $('#chipActive').textContent=fmtDur((onMs-brMs)/60000);
+  $('#chipBreak').textContent=fmtDur(brMs/60000);
+  $('#topDot').className='dot'+(p.live?(p.breakStart?' br':' on'):'');
+  $('#sideDot').className=$('#topDot').className;
+  $('#topPillTxt').textContent=p.live?(p.breakStart?'休息中':'執勤中'):'離線';
+  $('#sideState').textContent=$('#topPillTxt').textContent;
+  $('#topPillTime').textContent=p.live?fmtHMS(p.on):'';
+  $('#sideTimer').textContent=p.live?fmtHMS(p.on):'--:--:--'}
+
+/* ═══════════════ 總覽 ═══════════════ */
+function renderDash(){const now=new Date(),h=now.getHours();
+  $('#greet').textContent=(h<11?'早安，':h<18?'午安，':'晚安，')+esc(db.profile.name)+' 🛵';
+  $('#dateLine').textContent=`${now.getMonth()+1}月${now.getDate()}日 · 週${WEEK_TW[now.getDay()]} — ${db.live?'繼續衝！今天也是賺錢的一天':'今天想跑幾單？'}`;
+  $('#chipStreak').textContent=streak();
+  $('#chipAllOrders').textContent=db.deliveries.reduce((a,d)=>a+ordOf(d),0);
+  const k=todayKey(),td=db.deliveries.filter(d=>d.date===k),tInc=td.reduce((a,d)=>a+num(d.pay)+num(d.tip),0);
+  countUp($('#tIncome'),tInc,fmtM);$('#tOrders').textContent=ordersOn(k);
+  const rec=shiftRec(k),p=liveParts(),isToday=p.live&&dk(new Date(p.startTs))===k;
+  const actH=((rec?activeMinOf(rec):0)*60000+(isToday?p.on-p.br:0))/3600000;
+  $('#tHourly').textContent=actH>0.01?fmtM(tInc/actH):'—';
+  $('#tAvg').textContent=ordersOn(k)?fmtM(tInc/ordersOn(k)):'—';
+  const days=weekDays(0),keys=days.map(dk),wInc=keys.reduce((a,k2)=>a+incomeOn(k2),0);
+  const wOn=sumOnline(days),wAct=sumActive(days);
+  countUp($('#wIncome'),wInc,fmtM);
+  $('#wOnline').textContent=fmtDur(wOn);$('#wActive').textContent=fmtDur(wAct);
+  $('#wHourly').textContent=wAct>0?fmtM(wInc/(wAct/60)):'—';
+  $('#wRange').textContent=`${days[0].getMonth()+1}/${days[0].getDate()}–${days[6].getMonth()+1}/${days[6].getDate()}`;
+  const goal=Math.max(1,db.profile.goal),pct=Math.min(100,wInc/goal*100);
+  $('#goalBar').style.width=pct+'%';$('#goalTxt').textContent=Math.round(pct)+'% · '+fmt0(wInc)+' / '+fmt0(db.profile.goal);
+  $('#sideGoalTxt').textContent=fmt0(wInc)+' / '+fmt0(db.profile.goal);$('#sideGoalBar').style.width=pct+'%';
+  renderWeekBars(days);renderDonut(keys);renderRecent();
+  $('#emptyCard').style.display=(db.deliveries.length===0&&db.shifts.length===0)?'block':'none'}
+
+function renderWeekBars(days){const wrap=$('#weekBars');wrap.innerHTML='';
+  const vals=days.map(d=>incomeOn(dk(d))),mx=Math.max(...vals,1),labels=['一','二','三','四','五','六','日'];
+  days.forEach((d,i)=>{const col=document.createElement('div');col.className='wcol';
+    const isT=dk(d)===todayKey(),v=vals[i];
+    col.innerHTML=`<div class="val">${v?fmt0(v):''}</div><div class="bar zero${isT?' today':''}" title="${labels[i]} ${fmtM(v)}"></div><div class="dow${isT?' t':''}">${labels[i]}</div>`;
+    wrap.append(col);const bar=col.querySelector('.bar');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      if(v>0){bar.classList.remove('zero');bar.style.height=Math.max(6,v/mx*100)+'%'}
+      else{bar.classList.add('zero');bar.style.height='3px'}
+    }))})}
+
+function renderDonut(keys){
+  const svg=$('#donutSvg'), lg=$('#donutLegend');
+  const tot=keys.reduce((a,k)=>a+incomeOn(k),0);
+  const segs=db.platforms.map(p=>({
+    p,
+    v:db.deliveries.filter(d=>d.date&&keys.includes(d.date)&&d.platform===p.id).reduce((a,d)=>a+num(d.pay)+num(d.tip),0)
+  })).filter(s=>s.v>0).sort((a,b)=>b.v-a.v);
+
+  $('#donutCenter').textContent=fmt0(tot);
+
+  const R=48, C=2*Math.PI*R;
+  
+  if(!tot){
+    svg.innerHTML=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--line2)" stroke-width="6" opacity="0.3" stroke-dasharray="3 5"/>`;
+    lg.innerHTML='<div class="dim" style="font-size:13px">本週還沒有收入紀錄</div>';
+    return;
+  }
+
+  let acc=0;
+  const hasMulti=segs.length>1;
+  const gap=hasMulti?10:0;
+
+  let html=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="var(--line2)" stroke-width="6" opacity="0.35"/>`;
+
+  segs.forEach(s=>{
+    const f=s.v/tot;
+    const arcLen=Math.max(0.1, f*C - gap);
+    html+=`<circle cx="60" cy="60" r="${R}" fill="none" 
+      stroke="${safeColor(s.p.color)}" stroke-width="6" 
+      stroke-dasharray="${arcLen} ${C}" 
+      stroke-dashoffset="${-acc*C}" 
+      stroke-linecap="${hasMulti?'round':'butt'}"
+      transform="rotate(-90 60 60)"
+      style="transition:all .5s cubic-bezier(0.2, 0.8, 0.2, 1)">
+      <title>${esc(s.p.name)} ${fmtM(s.v)} (${Math.round(f*100)}%)</title>
+    </circle>`;
+    acc+=f;
+  });
+
+  svg.innerHTML=html;
+  lg.innerHTML=segs.map(s=>`
+    <div class="lg">
+      <span class="sw" style="background:${safeColor(s.p.color)}"></span>
+      <span style="font-weight:600">${esc(s.p.name)}</span>
+      <span class="pc">${fmt0(s.v)} <span style="font-size:11px;opacity:.65">(${Math.round(s.v/tot*100)}%)</span></span>
+    </div>`).join('');
+}
+
+function ordBadge(d){return (d.orders&&d.orders>1)?`<span class="chip" style="padding:1px 8px;font-size:10px">×${d.orders}</span>`:''}
+function renderRecent(){const box=$('#recentList'),list=[...db.deliveries].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)).slice(0,6);
+  if(!list.length){box.innerHTML='<div class="dim" style="padding:14px;text-align:center">還沒有紀錄 — 按右上角「＋ 記一單」或「📅 當日快記」開始</div>';return}
+  box.innerHTML=list.map(d=>{const p=plat(d.platform);return `
+    <div class="recent-item hoverable">
+      <span class="pbadge" style="--c:${safeColor(p.color)}">${esc(p.name)}</span>${ordBadge(d)}
+      <span style="font-weight:600">${esc(d.store)||'<span class=faint>—</span>'}</span>
+      <span class="dim mono" style="font-size:11.5px">${fmtDateTw(d.date)}${d.miles?` · ${d.miles}km`:''}</span>
+      <span class="money" style="margin-left:auto">${fmtM(num(d.pay)+num(d.tip))}</span>
+      ${d.tip?`<span class="dim" style="font-size:12px">含小費 ${fmtM(d.tip)}</span>`:''}
+    </div>`}).join('')}
+
+/* ═══════════════ 跑單紀錄 ═══════════════ */
+let delPlatFilter='all',delRange='all';
+function renderDels(){
+  const chips=$('#platChips');
+  chips.innerHTML=`<button class="fchip${delPlatFilter==='all'?' on':''}" data-p="all">全部平台</button>`+
+    db.platforms.map(p=>`<button class="fchip${delPlatFilter===p.id?' on':''}" data-p="${p.id}" style="--c:${safeColor(p.color)}"><span class="sw"></span>${esc(p.name)}</button>`).join('');
+  chips.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{delPlatFilter=b.dataset.p;renderDels()});
+  let list=[...db.deliveries];
+  if(delPlatFilter!=='all')list=list.filter(d=>d.platform===delPlatFilter);
+  if(delRange==='today')list=list.filter(d=>d.date===todayKey());
+  if(delRange==='week'){const keys=new Set(weekDays(0).map(dk));list=list.filter(d=>keys.has(d.date))}
+  list.sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+  const tot=list.reduce((a,d)=>a+num(d.pay)+num(d.tip),0),tip=list.reduce((a,d)=>a+num(d.tip),0),
+        mi=list.reduce((a,d)=>a+num(d.miles),0),ord=list.reduce((a,d)=>a+ordOf(d),0);
+  $('#delStats').innerHTML=`<span class="chip">📦 <b class="mono">${ord}</b> 單</span>
+    <span class="chip">💰 總計 <b class="money">${fmtM(tot)}</b></span>
+    <span class="chip">🪙 小費 <b class="money">${fmtM(tip)}</b></span>
+    <span class="chip">📏 <b class="mono">${mi.toFixed(1)}</b> km</span>
+    <span class="chip">📊 平均 <b class="money">${ord?fmtM(tot/ord):'—'}</b>/單</span>`;
+  $('#delEmpty').style.display=list.length?'none':'block';
+  $('#delBody').innerHTML=list.map(d=>{const p=plat(d.platform);return `
+    <tr>
+      <td class="mono dim" style="white-space:nowrap">${fmtDateTw(d.date)}</td>
+      <td class="plat" style="--c:${safeColor(p.color)}"><span class="pbadge" style="--c:${safeColor(p.color)}">${esc(p.name)}</span> ${ordBadge(d)}</td>
+      <td>${esc(d.store)||'<span class=faint>—</span>'}${d.note?`<div class="tiny">${esc(d.note)}</div>`:''}</td>
+      <td class="mono dim">${d.miles?d.miles+' km':'—'}</td>
+      <td class="mono dim">${d.minutes?d.minutes+'m':'—'}</td>
+      <td class="money dim">${d.tip?'+'+fmtM(d.tip):'—'}</td>
+      <td class="money" style="font-size:14.5px">${fmtM(num(d.pay)+num(d.tip))}</td>
+      <td style="white-space:nowrap">
+        <button class="icon-btn" data-act="edit" data-id="${d.id}" title="編輯"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        <button class="icon-btn del" data-act="del" data-id="${d.id}" title="刪除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>
+      </td>
+    </tr>`}).join('')}
+$('#delBody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;
+  const d=db.deliveries.find(x=>x.id===b.dataset.id);if(!d)return;
+  if(b.dataset.act==='del'){askConfirm(`刪除 ${fmtDateTw(d.date)} 這筆 ${fmtM(num(d.pay)+num(d.tip))} 的紀錄？`,()=>{
+    db.deliveries=db.deliveries.filter(x=>x.id!==d.id);save();renderAll();toast('已刪除')})}
+  else openDlModal(d)});
+$('#delRange').onchange=e=>{delRange=e.target.value;renderDels()};
+
+/* ── 外送 Modal ── */
+let editId=null;
+function buildPlatSelect(){const sel=$('#fPlatform');sel.innerHTML=db.platforms.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+function openDlModal(d){editId=d?d.id:null;buildPlatSelect();
+  $('#fTitle').textContent=d?'編輯外送':'記一單';
+  $('#fDate').value=d?d.date:todayKey();
+  $('#fPlatform').value=d?d.platform:(db.platforms[0]?db.platforms[0].id:'');
+  $('#fStore').value=(d&&d.store)||'';
+  $('#fPay').value=(d&&d.pay!==undefined&&d.pay!==null)?d.pay:'';
+  $('#fTip').value=(d&&d.tip!==undefined&&d.tip!==null)?d.tip:'';
+  $('#fMiles').value=(d&&d.miles)?d.miles:'';
+  $('#fMin').value=(d&&d.minutes)?d.minutes:'';
+  $('#fNote').value=(d&&d.note)||'';
+  $('#dlModal').classList.add('open');setTimeout(()=>$('#fPay').focus(),60)}
+$('#fSave').onclick=()=>{const date=$('#fDate').value||todayKey();
+  const rec={id:editId||uid(),date,platform:$('#fPlatform').value,store:$('#fStore').value.trim(),
+    pay:num($('#fPay').value),tip:num($('#fTip').value),miles:num($('#fMiles').value),
+    minutes:Math.round(num($('#fMin').value)),note:$('#fNote').value.trim()};
+  if(editId){const i=db.deliveries.findIndex(x=>x.id===editId);
+    if(i>-1){const old=db.deliveries[i];rec.orders=old.orders;rec.summary=old.summary;db.deliveries[i]=rec}}
+  else db.deliveries.push(rec);
+  save();$('#dlModal').classList.remove('open');editId=null;renderAll();toast('已記錄一單 💰','ok')};
+$('#fCancel').onclick=()=>{$('#dlModal').classList.remove('open');editId=null};
+$('#btnAddDl').onclick=()=>openDlModal(null);
+$('#btnQuickAdd').onclick=()=>openDlModal(null);
+$('#btnFirst').addEventListener('click',()=>openDlModal(null));
+$$('.overlay').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target===o){
+    o.classList.remove('open');editId=null;
+    if(fbCancelCb){const c=fbCancelCb;fbCancelCb=null;setTimeout(c,50)}
+  }
+}));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    $$('.overlay').forEach(o=>o.classList.remove('open'));editId=null;
+    if(fbCancelCb){const c=fbCancelCb;fbCancelCb=null;setTimeout(c,50)}
+  }
+});
+
+/* ═══════════════ 當日快記 ═══════════════ */
+function addDRow(pid){const div=document.createElement('div');div.className='drow';
+  div.innerHTML=`<select class="dr-plat"></select>
+    <input type="number" class="dr-orders" min="0" placeholder="單數">
+    <input type="number" class="dr-amt" step="0.01" min="0" placeholder="金額 $（含小費）">
+    <button class="icon-btn del dr-del" title="移除">✕</button>`;
+  $('#dRows').append(div);
+  div.querySelector('.dr-plat').innerHTML=db.platforms.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  if(pid)div.querySelector('.dr-plat').value=pid}
+$('#btnDayEntry').onclick=openDayModal;
+$('#dAddRow').onclick=()=>addDRow();
+$('#dRows').addEventListener('click',e=>{const b=e.target.closest('.dr-del');if(!b)return;
+  if($$('#dRows .drow').length>1)b.closest('.drow').remove();else toast('至少保留一個平台','err')});
+
+/* ═══════════════ 班次工時 ═══════════════ */
+function renderShifts(){$('#sDate').value=$('#sDate').value||todayKey();
+  const rows=[];for(let i=0;i<14;i++){const d=new Date();d.setDate(d.getDate()-i);rows.push(d)}
+  const wk=new Set(weekDays(0).map(dk));
+  $('#shiftList').innerHTML=rows.map(d=>{const k=dk(d),s=shiftRec(k),inc=incomeOn(k),od=ordersOn(k);
+    const on=s?num(s.onlineMin):0,act=s?activeMinOf(s):0,br=s?num(s.breakMin):0;
+    const segTxt=s&&s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'<span class="faint">—</span>';
+    const extra=(s&&s.km?` · ${s.km}km`:'');
+    return `<tr${k===todayKey()?' style="background:#ffd24a0d"':''}>
+      <td style="white-space:nowrap">${fmtDateTw(k)} ${wk.has(k)?'<span class="chip" style="padding:1px 8px;font-size:10px">本週</span>':''}</td>
+      <td class="mono dim" style="font-size:12px">${segTxt}${extra}</td>
+      <td class="mono">${on?fmtDur(on):'<span class=faint>—</span>'}</td>
+      <td class="mono" style="color:var(--ue)">${act?fmtDur(act):'<span class=faint>—</span>'}</td>
+      <td class="mono dim">${br?fmtDur(br):'—'}</td>
+      <td class="mono">${od||'<span class=faint>—</span>'}</td>
+      <td class="money">${inc?fmtM(inc):'<span class=faint>—</span>'}</td>
+      <td class="money" style="color:var(--sun)">${act>0&&inc?fmtM(inc/(act/60)):'—'}</td></tr>`}).join('')}
+$('#sAdd').onclick=()=>{const date=$('#sDate').value,st=$('#sStart').value,en=$('#sEnd').value;
+  if(!date||!st||!en){toast('請填齊日期與時間','err');return}
+  const[s1,s2]=st.split(':').map(Number),[e1,e2]=en.split(':').map(Number);
+  let mins=(e1*60+e2)-(s1*60+s2);if(mins<=0)mins+=1440;
+  const br=Math.min(Math.round(num($('#sBreak').value)),mins);
+  addShiftSeg(date,st,en,mins,br);renderAll();
+  toast(`已補登 ${fmtDateTw(date)}：上線 ${fmtDur(mins)}`,'ok')};
+
+/* ═══════════════ 日曆 ═══════════════ */
+let calCursor=new Date(),calSel=todayKey();
+function renderCal(){const y=calCursor.getFullYear(),m=calCursor.getMonth();
+  $('#calLabel').textContent=`${y} 年 ${m+1} 月 · MONTH VIEW`;
+  const dim=new Date(y,m+1,0).getDate();
+  let mInc=0,mOrd=0,mOn=0,mAct=0,maxDay=1;
+  for(let d=1;d<=dim;d++){const k=dk(new Date(y,m,d));const inc=incomeOn(k);
+    mInc+=inc;mOrd+=ordersOn(k);maxDay=Math.max(maxDay,inc);
+    const s=shiftRec(k);if(s){mOn+=num(s.onlineMin);mAct+=activeMinOf(s)}}
+  $('#calMonthStats').innerHTML=`<span class="chip">💰 本月 <b class="money">${fmtM(mInc)}</b></span>
+    <span class="chip">📦 <b class="mono">${mOrd}</b> 單</span>
+    <span class="chip">⏱ 上線 <b class="mono">${fmtDur(mOn)}</b></span>
+    <span class="chip">⚡ 活躍 <b class="mono">${fmtDur(mAct)}</b></span>
+    <span class="chip">📊 時薪 <b class="money">${mAct>0?fmtM(mInc/(mAct/60)):'—'}</b></span>`;
+  const first=new Date(y,m,1),off=(first.getDay()+6)%7,gridStart=new Date(y,m,1-off);
+  let html='';
+  for(let i=0;i<42;i++){const d=new Date(gridStart);d.setDate(gridStart.getDate()+i);const k=dk(d);
+    const inMonth=d.getMonth()===m,inc=incomeOn(k),ord=ordersOn(k),s=shiftRec(k);
+    const plats=[...new Set(db.deliveries.filter(x=>x.date===k).map(x=>x.platform))];
+    const heat=inc>0?`background-color:rgba(255,210,74,${(0.06+0.22*(inc/maxDay)).toFixed(2)})`:'';
+    html+=`<button class="cal-cell${inMonth?'':' out'}${k===todayKey()?' today':''}${k===calSel?' sel':''}" data-k="${k}" style="${heat}">
+      <span class="cd">${d.getDate()}</span>
+      ${inc>0?`<span class="ci">$${Math.round(inc)}</span>`:''}
+      ${s?`<span class="cs">⚡${fmtDur(activeMinOf(s))}</span>`:''}
+      ${ord>0?`<span class="co">${ord} 單</span>`:''}
+      <span class="cdots">${plats.map(p=>`<i style="background:${safeColor(plat(p).color)}"></i>`).join('')}</span>
+    </button>`}
+  $('#calGrid').innerHTML=html;
+  renderCalDay()}
+function renderCalDay(){const k=calSel,d=parseKey(k);
+  $('#calDayTitle').textContent=`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} 週${WEEK_TW[d.getDay()]}`;
+  const s=shiftRec(k),dels=db.deliveries.filter(x=>x.date===k).sort((a,b)=>b.id.localeCompare(a.id));
+  const inc=dels.reduce((a,x)=>a+num(x.pay)+num(x.tip),0),on=s?num(s.onlineMin):0,act=s?activeMinOf(s):0;
+  $('#calDayStats').innerHTML=`<span class="chip">💰 <b class="money">${fmtM(inc)}</b></span>
+    <span class="chip">📦 <b class="mono">${ordersOn(k)}</b> 單</span>
+    <span class="chip">⏱ 上線 <b class="mono">${on?fmtDur(on):'—'}</b></span>
+    <span class="chip">⚡ 活躍 <b class="mono">${act?fmtDur(act):'—'}</b></span>
+    <span class="chip">📊 時薪 <b class="money">${act>0&&inc?fmtM(inc/(act/60)):'—'}</b></span>`;
+  $('#calDayShift').textContent=s?`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'}（休息 ${fmtDur(s.breakMin)}${s.km?` · ${s.km}km`:''}）${s.note?`｜${s.note}`:''}`:'當天沒有班次紀錄';
+  $('#calDayList').innerHTML=dels.length?dels.map(x=>{const p=plat(x.platform);return `
+    <div class="recent-item hoverable">
+      <span class="pbadge" style="--c:${safeColor(p.color)}">${esc(p.name)}</span>${ordBadge(x)}
+      <span style="font-weight:600">${esc(x.store)||'<span class=faint>—</span>'}</span>
+      <span class="dim mono" style="font-size:11.5px">${x.miles?x.miles+'km':''}${x.minutes?' · '+x.minutes+'m':''}</span>
+      <span class="money" style="margin-left:auto">${fmtM(num(x.pay)+num(x.tip))}</span>
+      <button class="icon-btn" data-cedit="${x.id}" title="編輯">✎</button>
+    </div>`}).join(''):'<div class="dim" style="padding:10px;text-align:center">這天沒有外送紀錄</div>'}
+$('#calGrid').addEventListener('click',e=>{const c=e.target.closest('.cal-cell');if(!c)return;calSel=c.dataset.k;renderCal()});
+$('#calDayList').addEventListener('click',e=>{const b=e.target.closest('[data-cedit]');if(!b)return;
+  const d=db.deliveries.find(x=>x.id===b.dataset.cedit);if(d)openDlModal(d)});
+$('#calPrev').onclick=()=>{const y=calCursor.getFullYear(),m=calCursor.getMonth();calCursor=new Date(y,m-1,1);renderCal()};
+$('#calNext').onclick=()=>{const y=calCursor.getFullYear(),m=calCursor.getMonth();calCursor=new Date(y,m+1,1);renderCal()};
+$('#calToday').onclick=()=>{calCursor=new Date();calSel=todayKey();renderCal()};
+$('#calAdd').onclick=()=>{openDlModal(null);$('#fDate').value=calSel};
+
+/* ═══════════════ 收入分析 ═══════════════ */
+let anRange='week';
+$$('.an-btn').forEach(b=>b.onclick=()=>{anRange=b.dataset.r;$$('.an-btn').forEach(x=>x.classList.toggle('on',x===b));renderAna()});
+function renderAna(){let dels,actMin,shiftKm,delMi;
+  if(anRange==='all'){dels=[...db.deliveries];actMin=db.shifts.reduce((a,s)=>a+activeMinOf(s),0);
+    shiftKm=db.shifts.reduce((a,s)=>a+num(s.km),0)}
+  else{const days=weekDays(anRange==='last'?-1:0),keys=new Set(days.map(dk));
+    dels=db.deliveries.filter(d=>keys.has(d.date));actMin=sumActive(days);shiftKm=sumShiftKm(days)}
+  delMi=dels.reduce((a,d)=>a+num(d.miles),0);
+  const mi=delMi+shiftKm;
+  const rev=dels.reduce((a,d)=>a+num(d.pay)+num(d.tip),0),tip=dels.reduce((a,d)=>a+num(d.tip),0);
+  const actH=actMin/60,label={week:'本週',last:'上週',all:'全部'}[anRange];
+  const totOrd=dels.reduce((a,d)=>a+ordOf(d),0);
+  $('#anaStrip').innerHTML=[['總收入',fmtM(rev)],['活躍工時',fmtDur(actMin)],['整體時薪',actH>0?fmtM(rev/actH):'—'],
+    ['總單數',String(totOrd)],['平均每單',totOrd?fmtM(rev/totOrd):'—']].map(([l,v])=>
+    `<div class="wb-item"><div class="lab">${l} · ${label}</div><div class="val ${v.startsWith('$')?'money':''}" style="font-size:26px">${v}</div></div>`).join('');
+  const stats=db.platforms.map(p=>{const ds=dels.filter(d=>d.platform===p.id);
+    const r=ds.reduce((a,d)=>a+num(d.pay)+num(d.tip),0),tp=ds.reduce((a,d)=>a+num(d.tip),0),
+    m=ds.reduce((a,d)=>a+num(d.miles),0),mn=ds.reduce((a,d)=>a+num(d.minutes),0),
+    n=ds.reduce((a,d)=>a+ordOf(d),0);
+    return{p,n,rev:r,tip:tp,mi:m,mn,hourly:mn>0?r/(mn/60):0}}).filter(s=>s.n>0||anRange!=='all');
+  
+  const best=stats.filter(s=>s.n>0&&s.hourly>0).sort((a,b)=>b.hourly-a.hourly)[0];
+  const maxRev=Math.max(...stats.map(s=>s.rev),1);
+  $('#platCards').innerHTML=stats.map(s=>`
+    <div class="card pcard" style="--c:${safeColor(s.p.color)}">
+      <div class="top"><span class="pbadge" style="--c:${safeColor(s.p.color)}">${esc(s.p.name)}</span>
+        ${best&&s.p.id===best.p.id&&s.hourly>0?'<span class="crown">👑 時薪王</span>':''}</div>
+      <div class="hourly">${s.hourly?'$'+s.hourly.toFixed(2):'—'}<small> /小時（依送單時數）</small></div>
+      <div class="rows">
+        <div><span>單數</span><span>${s.n}</span></div>
+        <div><span>總收入</span><span>${fmtM(s.rev)}</span></div>
+        <div><span>小費</span><span>${fmtM(s.tip)}</span></div>
+        <div><span>平均/單</span><span>${s.n?fmtM(s.rev/s.n):'—'}</span></div>
+      </div>
+      <div class="meter"><i style="width:0%"></i></div>
+    </div>`).join('')||'<div class="card dim">這個範圍內還沒有資料</div>';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('#platCards .meter i').forEach((el,i)=>{if(stats[i])el.style.width=(stats[i].rev/maxRev*100)+'%'})));
+  const cpm=num(db.profile.cpm),cost=mi*cpm;
+  $('#vehMiles').textContent=mi.toFixed(1)+' km';
+  $('#vehPerMile').textContent=mi>0?fmtM(rev/mi):'—';
+  $('#vehRate').textContent=`（${fmtM(cpm)}/km）`;
+  $('#vehCost').textContent='-'+fmtM(cost);
+  const net=rev-cost;$('#vehNet').textContent=fmtM(net);
+  $('#vehNet').className=net>=0?'pos':'neg';
+  const ins=[];
+  if(best&&best.hourly>0)ins.push(`👑 <b>${esc(best.p.name)}</b> 的時薪最高，約 <b class="money">$${best.hourly.toFixed(2)}/hr</b>`);
+  if(tip>0&&rev>0)ins.push(`🪙 小費占收入 <b>${Math.round(tip/rev*100)}%</b>（${fmtM(tip)}）——客人挺你的！`);
+  if(mi>0)ins.push(`📏 平均每公里賺 <b class="money">${fmtM(rev/mi)}</b>${rev/mi<cpm?'，<span style="color:var(--red)">低於車輛成本，注意接單品質</span>':''}`);
+  const bestDay=weekDays(0).map(d=>({k:dk(d),v:incomeOn(dk(d))})).sort((a,b)=>b.v-a.v)[0];
+  if(bestDay&&bestDay.v>0)ins.push(`📅 本週最賺：<b>週${WEEK_TW[parseKey(bestDay.k).getDay()]}</b>（${fmtM(bestDay.v)}）`);
+  if(actH>0)ins.push(`⏱ 整體時薪 <b class="money">${fmtM(rev/actH)}</b>（${label}，以活躍時間計算）`);
+  $('#insightList').innerHTML=ins.length?ins.map(t=>`<div class="vrow" style="display:block;padding:10px 0">${t}</div>`).join(''):'<div class="dim">有資料後這裡會出現洞察 ✨</div>'}
+
+/* ═══════════════ 設定 ═══════════════ */
+function renderSet(){$('#setName').value=db.profile.name;$('#setGoal').value=db.profile.goal;$('#setCpm').value=db.profile.cpm;
+  $('#platList').innerHTML=db.platforms.map(p=>{const n=db.deliveries.filter(d=>d.platform===p.id).reduce((a,d)=>a+ordOf(d),0);
+    return `<div class="plat-manage-row"><span class="sw-lg" style="background:${safeColor(p.color)}"></span>
+      <b>${esc(p.name)}</b><span class="tiny">${n} 單</span>
+      <button class="icon-btn del" data-del="${p.id}" style="margin-left:auto" title="刪除平台"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`}).join('');
+  $$('#platList [data-del]').forEach(b=>b.onclick=()=>{const id=b.dataset.del,
+    n=db.deliveries.filter(d=>d.platform===id).length;
+    if(db.platforms.length<=1){toast('至少需保留一個平台','err');return}
+    if(n>0){toast(`此平台還有 ${n} 筆紀錄，無法刪除`,'err');return}
+    askConfirm('刪除這個平台？',()=>{db.platforms=db.platforms.filter(p=>p.id!==id);save();renderSet();toast('已刪除平台')})})}
+$('#btnSaveProfile').onclick=()=>{db.profile.name=$('#setName').value.trim()||'車手';
+  db.profile.goal=Math.max(1,num($('#setGoal').value));db.profile.cpm=num($('#setCpm').value);
+  save();renderAll();toast('設定已儲存 ✓','ok')};
+$('#npAdd').onclick=()=>{const name=$('#npName').value.trim();if(!name){toast('請輸入名稱','err');return}
+  db.platforms.push({id:'p'+uid(),name,color:$('#npColor').value});save();$('#npName').value='';
+  renderSet();buildPlatSelect();toast(`已新增平台「${name}」`,'ok')};
+$('#btnJson').onclick=()=>download('runlog-backup-'+todayKey()+'.json',JSON.stringify(db,null,2),'application/json');
+$('#btnCsv').onclick=()=>{
+  const csvCell=s=>`"${String(s??'').replace(/"/g,'""').replace(/[\r\n]+/g,' ')}"`;
+  const headers=['date','platform','store','orders','km','pay','tip','total','minutes','note'].map(csvCell);
+  const rows=[headers,
+    ...db.deliveries.map(d=>[
+      csvCell(d.date),csvCell(plat(d.platform).name),csvCell(d.store),csvCell(ordOf(d)),
+      csvCell(d.miles||0),csvCell(d.pay),csvCell(d.tip),csvCell((num(d.pay)+num(d.tip)).toFixed(2)),
+      csvCell(d.minutes||0),csvCell(d.note)
+    ])];
+  download('runlog-deliveries-'+todayKey()+'.csv','\ufeff'+rows.map(r=>r.join(',')).join('\n'),'text/csv');toast('CSV 已匯出')};
+$('#btnImport').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d||typeof d!=='object'||!Array.isArray(d.deliveries))throw new Error();
+    db=Object.assign(defaultDB(),d,{
+      profile:Object.assign(defaultDB().profile,d.profile||{}),
+      platforms:Array.isArray(d.platforms)&&d.platforms.length?d.platforms:defaultDB().platforms,
+      shifts:Array.isArray(d.shifts)?d.shifts:[],
+      deliveries:Array.isArray(d.deliveries)?d.deliveries:[]
+    });save();renderAll();toast('匯入成功！','ok')}
+    catch(err){toast('檔案格式不正確','err')}};rd.readAsText(f);e.target.value=''};
+$('#btnDemo').onclick=()=>askConfirm('載入示範資料？會加入過去兩週的假資料（不會清除你現有的紀錄）。',seedDemo);
+$('#btnDemo1').addEventListener('click',()=>seedDemo());
+$('#btnReset').onclick=()=>askConfirm('這會刪除所有紀錄且無法復原，確定要清除嗎？',()=>{
+  db=defaultDB();save();renderAll();toast('已清除全部資料','ok')});
+
+/* ═══════════════ 示範資料 ═══════════════ */
+function seedDemo(){const P=['dd','dd','dd','ue','ue','pd'];
+  for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dk(d);
+    if(Math.random()<.8&&!shiftRec(k)){const sh=9+Math.floor(Math.random()*3),len=7+Math.floor(Math.random()*5);
+      const st=`${pad(sh)}:${Math.random()<.5?'00':'30'}`,eh=(sh+len)%24;
+      const mins=len*60+(Math.random()<.5?30:0),br=20+Math.floor(Math.random()*40);
+      addShiftSeg(k,st,`${pad(eh)}:${Math.random()<.5?'00':'30'}`,mins,br)}
+    const n=6+Math.floor(Math.random()*13);
+    for(let j=0;j<n;j++){const pf=P[Math.floor(Math.random()*P.length)],tip=Math.round(Math.random()*700)/100;
+      db.deliveries.push({id:uid()+j,date:k,platform:pf,
+        store:['Panda Express','Chipotle','Sushi Bar','McDonald\'s','Thai Basil','Shake Shack','Pho 88','Walmart'][Math.floor(Math.random()*8)],
+        miles:Math.round((1.5+Math.random()*10)*10)/10,pay:Math.round((3.5+Math.random()*6)*100)/100,tip,
+        minutes:12+Math.floor(Math.random()*25),note:''})}}
+  save();renderAll();toast('示範資料已載入 ✨ 盡情探索吧','ok')}
+
+/* ═══════════════ Firebase 雲端同步 ═══════════════ */
+const FB_KEY='runlog.fb';
+const DEVICE_ID=(()=>{let id=localStorage.getItem('runlog.device');if(!id){id=uid();localStorage.setItem('runlog.device',id)}return id})();
+let fbCfg=(()=>{try{return Object.assign({docKey:'main',auto:true},JSON.parse(localStorage.getItem(FB_KEY)||'{}'))}catch(e){return{docKey:'main',auto:true}}})();
+const saveFb=()=>localStorage.setItem(FB_KEY,JSON.stringify(fbCfg));
+const fbState={app:null,fs:null,ref:null,unsub:null,connected:false};
+let fbLib=null,fbTimer=null,fbCancelCb=null;
+
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyDiyRb34jCDwJNjH6ayV1Dvh3Hc6ntJAyQ",
+  authDomain:"my-aweson-project-4d2ab.firebaseapp.com",
+  projectId:"my-aweson-project-4d2ab",
+  storageBucket:"my-aweson-project-4d2ab.firebasestorage.app",
+  messagingSenderId:"989651968897",
+  appId:"1:989651968897:web:35ec0a859f8845ad37be80",
+  measurementId:"G-HQ564S78XV"
+};
+
+function fbStatus(msg,state){const s=$('#fbStatus'),d=$('#fbDot'),p=$('#fbPill');
+  if(s)s.textContent=msg;
+  if(d)d.className='dot'+(state==='ok'?' on':state==='busy'?' br':state==='err'?' err':'');
+  if(p)p.textContent=state==='ok'?'☁ 已連線':state==='busy'?'☁ 同步中…':state==='err'?'☁ 錯誤':'☁ 未連線'}
+async function loadFbLib(){if(fbLib)return fbLib;
+  fbStatus('載入 Firebase 套件…','busy');
+  const [app,fs]=await Promise.all([
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+    import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')]);
+  fbLib={app,fs};return fbLib}
+function fbSchedulePush(){if(!fbState.connected||!fbCfg.auto)return;clearTimeout(fbTimer);fbTimer=setTimeout(()=>fbPush(true),800)}
+async function fbPull(){if(!fbState.connected)return;fbStatus('下載中…','busy');
+  try{const s=await fbState.fs.getDoc(fbState.ref);
+    if(s.exists()&&s.data().json)fbApply(s.data().json,true);
+    else{toast('雲端還沒有資料');fbStatus('已連線','ok')}}
+  catch(e){fbStatus('下載失敗：'+(e.message||e),'err')}}
+async function fbConnect(){if(fbState.connected){toast('已經在連線狀態');return}
+  try{const {app,fs}=await loadFbLib();
+    const appName='runlog-'+DEVICE_ID.slice(-6);
+    let firebaseApp=app.getApps().find(a=>a.name===appName);
+    if(!firebaseApp){firebaseApp=app.initializeApp(FIREBASE_CONFIG,appName)}
+    fbState.app=firebaseApp;
+    fbState.fs=fs;
+    fbState.ref=fs.doc(fs.getFirestore(fbState.app),'runlog',fbCfg.docKey||'main');
+    fbState.connected=true;fbStatus('檢查雲端資料…','busy');
+    const snap=await fs.getDoc(fbState.ref);
+    if(snap.exists()&&snap.data().json&&snap.data().device!==DEVICE_ID){
+      const remoteJson=snap.data().json;
+      fbCancelCb=()=>fbPush(true);
+      askConfirm('雲端已有資料：按「確定」→ 下載雲端覆蓋本地；按「取消」→ 上傳本地覆蓋雲端。',
+        ()=>{fbCancelCb=null;fbApply(remoteJson,true)});
+    } else {await fbPush(true)}
+    if(fbCfg.auto)fbState.unsub=fs.onSnapshot(fbState.ref,s=>{const d=s.data();
+      if(d&&d.device!==DEVICE_ID&&d.json)fbApply(d.json,true)});
+    fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');
+    toast('Firebase 同步已開啟 ☁','ok');
+  }catch(e){fbState.connected=false;fbStatus('連線失敗：'+(e.message||e),'err');toast('Firebase 連線失敗','err');console.error(e)}}
+function fbDisconnect(){if(fbState.unsub){fbState.unsub();fbState.unsub=null}
+  fbState.connected=false;fbStatus('未連線','');toast('已中斷 Firebase 連線')}
+
+$('#fbDocKey').value=fbCfg.docKey;$('#fbAuto').checked=fbCfg.auto;
+$('#fbPill').onclick=()=>switchView('set');
+$('#fbSaveCfg').onclick=()=>{fbCfg.docKey=$('#fbDocKey').value.trim()||'main';fbCfg.auto=$('#fbAuto').checked;saveFb();toast('同步設定已儲存 ✓','ok');
+  if(fbState.connected){fbDisconnect();fbConnect()}};
+$('#fbConnect').onclick=fbConnect;
+$('#fbDisconnect').onclick=fbDisconnect;
+$('#fbPush').onclick=()=>fbPush(false);
+$('#fbPull').onclick=fbPull;
+
+/* ═══════════════ 快記升級：可編輯日期資料 ═══════════════ */
+function loadDayData(k){
+  $('#dRows').innerHTML='';
+  const sums=db.deliveries.filter(d=>d.date===k&&d.summary);
+  if(sums.length){sums.forEach(sd=>{addDRow(sd.platform);
+    const rows=$$('#dRows .drow');const row=rows[rows.length-1];
+    row.querySelector('.dr-orders').value=sd.orders!==undefined?sd.orders:'';
+    row.querySelector('.dr-amt').value=sd.pay?sd.pay:'';});
+  }else{db.platforms.forEach(p=>addDRow(p.id))}
+  const r=shiftRec(k);
+  const q=r&&r.q?r.q:(r&&(!r.segs||!r.segs.length||r.segs.every(g=>g.s==='快記'))?{on:r.onlineMin||0,br:r.breakMin||0,km:r.km||0,note:r.note||''}:null);
+  $('#dOnH').value=q?Math.floor((q.on||0)/60):0;
+  $('#dOnM').value=q?(q.on||0)%60:0;
+  $('#dBrM').value=q?(q.br||0):0;
+  $('#dKm').value=q&&q.km?q.km:'';
+  $('#dNote').value=q&&q.note?q.note:'';
+  const has=sums.length>0||!!(q&&(q.on||q.br||q.km||q.note));
+  const h2=document.querySelector('#dayModal h2');
+  if(h2)h2.textContent=has?'📅 編輯當日資料':'📅 當日快記'}
+function openDayModal(){const k=todayKey();$('#dDate').value=k;loadDayData(k);$('#dayModal').classList.add('open')}
+$('#dDate').addEventListener('change',e=>loadDayData(e.target.value||todayKey()));
+$('#dCancel').onclick=()=>$('#dayModal').classList.remove('open');
+function clearQ(date){const r=shiftRec(date);if(!r)return;const q=r.q||{on:0,br:0,km:0,note:''};
+  r.onlineMin=Math.max(0,num(r.onlineMin)-num(q.on));
+  r.breakMin=Math.max(0,num(r.breakMin)-num(q.br));
+  r.km=Math.max(0,num(r.km)-num(q.km));
+  if(q.note&&r.note===q.note)r.note='';
+  r.segs=(r.segs||[]).filter(g=>g.s!=='快記');
+  r.q={on:0,br:0,km:0,note:''};
+  if(r.onlineMin===0&&r.breakMin===0&&num(r.km)===0&&!(r.segs&&r.segs.length))db.shifts=db.shifts.filter(s=>s.id!==r.id)}
+$('#dSave').onclick=()=>{
+  const date=$('#dDate').value||todayKey();
+  const onMin=Math.max(0,Math.round(num($('#dOnH').value))*60+Math.round(num($('#dOnM').value)));
+  const brMin=Math.max(0,Math.round(num($('#dBrM').value)));
+  const km=Math.max(0,num($('#dKm').value));
+  const note=$('#dNote').value.trim();
+  const rowsData=[];
+  $$('#dRows .drow').forEach(row=>{
+    const pid=row.querySelector('.dr-plat').value;
+    const ordersVal=row.querySelector('.dr-orders').value.trim();
+    const orders=ordersVal!==''?Math.max(0,Math.round(num(ordersVal))):0;
+    const amt=Math.max(0,num(row.querySelector('.dr-amt').value));
+    if(ordersVal!==''||amt>0)rowsData.push({pid,orders,amt})});
+  const r0=shiftRec(date),q0=r0&&r0.q?r0.q:null;
+  const hasOld=db.deliveries.some(d=>d.date===date&&d.summary)||!!(q0&&(q0.on||q0.br||q0.km||q0.note));
+  if(!rowsData.length&&!onMin&&!brMin&&!km&&!note){
+    if(hasOld){askConfirm('所有欄位都是空的，要清除 '+fmtDateTw(date)+' 的快記資料嗎？',()=>{
+      db.deliveries=db.deliveries.filter(d=>!(d.date===date&&d.summary));
+      clearQ(date);save();$('#dayModal').classList.remove('open');renderAll();toast('已清除 '+fmtDateTw(date)+' 的快記資料')});
+    } else toast('請至少填一個欄位','err');
+    return}
+  db.deliveries=db.deliveries.filter(d=>!(d.date===date&&d.summary));
+  rowsData.forEach(rd=>db.deliveries.push({id:uid(),date,platform:rd.pid,orders:rd.orders,
+    pay:rd.amt,tip:0,miles:0,minutes:0,store:'每日快記',summary:true,note:''}));
+  clearQ(date);
+  if(onMin||brMin||km||note){let r=shiftRec(date);
+    if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,km:0};db.shifts.push(r)}
+    r.onlineMin=num(r.onlineMin)+onMin;r.breakMin=num(r.breakMin)+brMin;r.km=num(r.km)+km;
+    if(note)r.note=note;
+    if(onMin){if(!r.segs)r.segs=[];r.segs.push({s:'快記',e:''})}
+    r.q={on:onMin,br:brMin,km:km,note:note}}
+  save();$('#dayModal').classList.remove('open');renderAll();
+  toast('已儲存 '+fmtDateTw(date)+' 的資料 📅','ok')};
+
+function fbApply(json,notify){try{const d=JSON.parse(json);
+  const myLive=db.live;
+  db=Object.assign(defaultDB(),d,{
+    profile:Object.assign(defaultDB().profile,d.profile||{}),
+    platforms:Array.isArray(d.platforms)&&d.platforms.length?d.platforms:defaultDB().platforms,
+    shifts:Array.isArray(d.shifts)?d.shifts:[],
+    deliveries:Array.isArray(d.deliveries)?d.deliveries:[]
+  });
+  if(myLive)db.live=myLive;
+  localStorage.setItem(KEY,JSON.stringify(db));
+  renderAll();if(notify)toast('已從雲端更新 ☁','ok')}catch(e){toast('雲端資料解析失敗','err')}}
+
+async function fbPush(silent){if(!fbState.connected||!fbState.ref)return;
+  fbStatus('上傳中…','busy');
+  try{const payload=JSON.stringify(Object.assign({},db,{live:null}));
+    await fbState.fs.setDoc(fbState.ref,{json:payload,ts:Date.now(),device:DEVICE_ID});
+    fbStatus('已同步 '+fmtTime(Date.now()),'ok');
+    if(!silent)toast('已上傳到雲端 ☁','ok')}
+  catch(e){fbStatus('上傳失敗：'+(e.message||e),'err')}}
+
+function renderAll(){syncShiftUI();renderCurrent()}
+syncShiftUI();
+switchView('dash');
+if(fbCfg.auto&&fbCfg.docKey){
+  fbConnect();
+}
+</script>
+</body>
+</html>
