@@ -669,7 +669,7 @@ select.inline{width:auto}
         <h3>近 14 天 <span class="en">LAST 14 DAYS</span></h3>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>日期</th><th>時段</th><th>上線</th><th>活躍</th><th>休息</th><th>單數</th><th>收入</th><th>時薪</th></tr></thead>
+            <thead><tr><th>日期</th><th>時段</th><th>上線</th><th>活躍</th><th>休息</th><th>單數</th><th>收入</th><th>時薪</th><th></th></tr></thead>
             <tbody id="shiftList"></tbody>
           </table>
         </div>
@@ -839,6 +839,29 @@ select.inline{width:auto}
     <div class="modal-foot">
       <button class="btn btn-ghost" id="dCancel">取消</button>
       <button class="btn btn-primary" id="dSave">儲存當日資料</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 編輯班次 Modal ── -->
+<div class="overlay" id="shiftModal">
+  <div class="modal" style="max-width:480px">
+    <h2>✏️ 編輯班次</h2>
+    <div class="m-grid">
+      <div class="full"><label>日期</label><input type="date" id="smDate"></div>
+      <div><label>上線（小時）</label><input type="number" id="smOnH" min="0" value="0"></div>
+      <div><label>上線（分鐘）</label><input type="number" id="smOnM" min="0" max="59" value="0"></div>
+      <div><label>休息（分鐘）</label><input type="number" id="smBrM" min="0" value="0"></div>
+      <div><label>里程 km</label><input type="number" id="smKm" step="0.1" min="0" value="0"></div>
+      <div class="full"><label>備註</label><input id="smNote" placeholder="選填"></div>
+    </div>
+    <p class="tiny" style="margin-top:10px">＊ 時段明細僅供顯示，編輯以總時數為準。</p>
+    <div class="modal-foot" style="justify-content:space-between">
+      <button class="btn btn-danger btn-sm" id="smDel">🗑 刪除班次</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" id="smCancel">取消</button>
+        <button class="btn btn-primary" id="smSave">儲存</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1319,15 +1342,67 @@ $('#fCancel').onclick=()=>{$('#dlModal').classList.remove('open');editId=null};
 $('#btnAddDl').onclick=()=>openDlModal(null);
 $('#btnQuickAdd').onclick=()=>openDlModal(null);
 $('#btnFirst').addEventListener('click',()=>openDlModal(null));
+
+/* ═══════════════ 編輯班次 ═══════════════ */
+let smId=null;
+function openShiftModal(id){
+  const s=db.shifts.find(x=>x.id===id);if(!s)return;
+  smId=id;
+  $('#smDate').value=s.date;
+  $('#smOnH').value=Math.floor((num(s.onlineMin)||0)/60);
+  $('#smOnM').value=(num(s.onlineMin)||0)%60;
+  $('#smBrM').value=num(s.breakMin)||0;
+  $('#smKm').value=num(s.km)||0;
+  $('#smNote').value=s.note||'';
+  $('#shiftModal').classList.add('open');
+}
+$('#smCancel').onclick=()=>{$('#shiftModal').classList.remove('open');smId=null};
+$('#smSave').onclick=()=>{
+  const s=db.shifts.find(x=>x.id===smId);if(!s)return;
+  const newDate=$('#smDate').value||s.date;
+  const onMin=Math.max(0,Math.round(num($('#smOnH').value))*60+Math.round(num($('#smOnM').value)));
+  const brMin=Math.max(0,Math.round(num($('#smBrM').value)));
+  const km=Math.max(0,num($('#smKm').value));
+  const note=$('#smNote').value.trim();
+  if(newDate!==s.date){
+    const exist=db.shifts.find(x=>x.date===newDate&&x.id!==s.id);
+    if(exist){
+      exist.onlineMin=num(exist.onlineMin)+onMin;
+      exist.breakMin=num(exist.breakMin)+brMin;
+      exist.km=num(exist.km)+km;
+      if(note)exist.note=(exist.note?exist.note+' / ':'')+note;
+      if(s.segs)exist.segs=[...(exist.segs||[]),...(s.segs||[])];
+      db.shifts=db.shifts.filter(x=>x.id!==s.id);
+    } else {
+      s.date=newDate;
+    }
+  }
+  s.onlineMin=onMin;s.breakMin=brMin;s.km=km;s.note=note;
+  save();$('#shiftModal').classList.remove('open');smId=null;renderAll();
+  toast('班次已更新 ✏️','ok');
+};
+$('#smDel').onclick=()=>{
+  const s=db.shifts.find(x=>x.id===smId);if(!s)return;
+  askConfirm(`刪除 ${fmtDateTw(s.date)} 的班次紀錄？`,()=>{
+    db.shifts=db.shifts.filter(x=>x.id!==s.id);
+    save();$('#shiftModal').classList.remove('open');smId=null;renderAll();toast('班次已刪除');
+  });
+};
+$('#shiftList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-sedit]');
+  if(b&&b.dataset.sedit)openShiftModal(b.dataset.sedit);
+});
+
+/* ═══════════════ 全局 Modal 關閉 ═══════════════ */
 $$('.overlay').forEach(o=>o.addEventListener('click',e=>{
   if(e.target===o){
-    o.classList.remove('open');editId=null;
+    o.classList.remove('open');editId=null;smId=null;
     if(fbCancelCb){const c=fbCancelCb;fbCancelCb=null;setTimeout(c,50)}
   }
 }));
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
-    $$('.overlay').forEach(o=>o.classList.remove('open'));editId=null;
+    $$('.overlay').forEach(o=>o.classList.remove('open'));editId=null;smId=null;
     if(fbCancelCb){const c=fbCancelCb;fbCancelCb=null;setTimeout(c,50)}
   }
 });
@@ -1347,10 +1422,12 @@ $('#dRows').addEventListener('click',e=>{const b=e.target.closest('.dr-del');if(
   if($$('#dRows .drow').length>1)b.closest('.drow').remove();else toast('至少保留一個平台','err')});
 
 /* ═══════════════ 班次工時 ═══════════════ */
-function renderShifts(){$('#sDate').value=$('#sDate').value||todayKey();
+function renderShifts(){
+  $('#sDate').value=$('#sDate').value||todayKey();
   const rows=[];for(let i=0;i<14;i++){const d=new Date();d.setDate(d.getDate()-i);rows.push(d)}
   const wk=new Set(weekDays(0).map(dk));
-  $('#shiftList').innerHTML=rows.map(d=>{const k=dk(d),s=shiftRec(k),inc=incomeOn(k),od=ordersOn(k);
+  $('#shiftList').innerHTML=rows.map(d=>{
+    const k=dk(d),s=shiftRec(k),inc=incomeOn(k),od=ordersOn(k);
     const on=s?num(s.onlineMin):0,act=s?activeMinOf(s):0,br=s?num(s.breakMin):0;
     const segTxt=s&&s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'<span class="faint">—</span>';
     const extra=(s&&s.km?` · ${s.km}km`:'');
@@ -1362,7 +1439,11 @@ function renderShifts(){$('#sDate').value=$('#sDate').value||todayKey();
       <td class="mono dim">${br?fmtDur(br):'—'}</td>
       <td class="mono">${od||'<span class=faint>—</span>'}</td>
       <td class="money">${inc?fmtM(inc):'<span class=faint>—</span>'}</td>
-      <td class="money" style="color:var(--sun)">${act>0&&inc?fmtM(inc/(act/60)):'—'}</td></tr>`}).join('')}
+      <td class="money" style="color:var(--sun)">${act>0&&inc?fmtM(inc/(act/60)):'—'}</td>
+      <td style="white-space:nowrap">${s?`<button class="icon-btn" data-sedit="${s.id}" title="編輯班次">✎</button>`:''}</td>
+    </tr>`;
+  }).join('');
+}
 $('#sAdd').onclick=()=>{const date=$('#sDate').value,st=$('#sStart').value,en=$('#sEnd').value;
   if(!date||!st||!en){toast('請填齊日期與時間','err');return}
   const[s1,s2]=st.split(':').map(Number),[e1,e2]=en.split(':').map(Number);
@@ -1511,19 +1592,12 @@ $('#btnCsv').onclick=()=>{
 $('#btnImport').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d||typeof d!=='object'||!Array.isArray(d.deliveries))throw new Error();
-    /* 平台取聯集：以本地既有平台為主（id 衝突時本地優先），再補進備份裡的新平台，
-       避免匯入舊備份後本地平台消失、舊紀錄顯示「(已刪平台)」 */
-    const ids=new Set(db.platforms.map(p=>p.id));
-    const mergedPlats=db.platforms.concat(
-      (Array.isArray(d.platforms)?d.platforms:[]).filter(p=>p&&p.id&&!ids.has(p.id))
-    );
     db=Object.assign(defaultDB(),d,{
       profile:Object.assign(defaultDB().profile,d.profile||{}),
-      platforms:mergedPlats,
+      platforms:Array.isArray(d.platforms)&&d.platforms.length?d.platforms:defaultDB().platforms,
       shifts:Array.isArray(d.shifts)?d.shifts:[],
       deliveries:Array.isArray(d.deliveries)?d.deliveries:[],
-      achievements:d.achievements||{},
-      live:null   /* 備份若在跑單中途匯出，避免還原出開始時間異常的班次 */
+      achievements:d.achievements||{}
     });save();renderAll();toast('匯入成功！','ok')}
     catch(err){toast('檔案格式不正確','err')}};rd.readAsText(f);e.target.value=''};
 $('#btnDemo').onclick=()=>askConfirm('載入示範資料？會加入過去兩週的假資料（不會清除你現有的紀錄）。',seedDemo);
