@@ -345,8 +345,8 @@ select.inline{width:auto}
 :root[data-theme="light"] .achv-card .tier.白銀{color:#4a5568}
 .achv-card.unlocked .meta .date{color:var(--ue);font-weight:600}
 .achv-card.unlocked::before{content:'✓';position:absolute;top:8px;right:10px;color:var(--ue);font-weight:800;font-size:14px}
-@keyframes unlockPop{0%{transform:scale(.8)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
-.achv-card.fresh{animation:unlockPop .5s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes unlockPop{0%{transform:scale(.85);box-shadow:0 0 0 rgba(255,210,74,0)}50%{transform:scale(1.05);box-shadow:0 0 25px rgba(255,210,74,.4)}100%{transform:scale(1)}}
+.achv-card.fresh{animation:unlockPop .6s cubic-bezier(.2,.9,.3,1.3)}
 </style>
 </head>
 <body>
@@ -1051,133 +1051,245 @@ function tick(){const now=new Date(),p=liveParts(),isToday=!p.live||dk(new Date(
   $('#topPillTime').textContent=p.live?fmtHMS(p.on):'';
   $('#sideTimer').textContent=p.live?fmtHMS(p.on):'--:--:--'}
 
-/* ═══════════════ 成就系統 ═══════════════ */
-const _totalOrd=()=>db.deliveries.reduce((a,d)=>a+ordOf(d),0);
-const _totalInc=()=>db.deliveries.reduce((a,d)=>a+num(d.pay)+num(d.tip),0);
-const _totalTip=()=>db.deliveries.reduce((a,d)=>a+num(d.tip),0);
-const _totalKm=()=>db.deliveries.reduce((a,d)=>a+num(d.miles),0)+db.shifts.reduce((a,s)=>a+num(s.km),0);
-const _maxDay=()=>{
-  const dates=[...new Set(db.deliveries.map(d=>d.date))];
-  return dates.length?Math.max(0,...dates.map(k=>incomeOn(k))):0;
-};
-const _maxHr=()=>{let m=0;[...new Set(db.deliveries.map(d=>d.date))].forEach(k=>{
-  const inc=incomeOn(k),s=shiftRec(k),act=s?activeMinOf(s):0;
-  if(act>0){const h=inc/(act/60);if(h>m)m=h}});return m};
-const _nightShifts=()=>db.shifts.filter(s=>(s.segs||[]).some(g=>{
-  const m=g.s&&g.s.includes(':')?parseInt(g.s.split(':')[0],10):-1;
-  return (m>=22&&m<=23)||(m>=0&&m<4)})).length;
-const _morningShifts=()=>db.shifts.filter(s=>(s.segs||[]).some(g=>{
-  const m=g.s&&g.s.includes(':')?parseInt(g.s.split(':')[0],10):-1;
-  return m>=4&&m<7})).length;
-const _weekendOrd=()=>{let n=0;db.deliveries.forEach(d=>{const day=parseKey(d.date).getDay();
-  if(day===0||day===6)n+=ordOf(d)});return n};
+/* ═══════════════ 成就系統 (O(n) 單次走訪計算) ═══════════════ */
+const recentUnlocks = new Set();
+
+function computeAchievementStats(){
+  let totalOrd = 0;
+  let totalInc = 0;
+  let totalTip = 0;
+  let delMiles = 0;
+  let maxTip = 0;
+  let weekendOrd = 0;
+  let rainCount = 0;
+  let coldCount = 0;
+
+  const dayInc = Object.create(null);
+  const platOrd = Object.create(null);
+
+  for(let i=0; i<db.deliveries.length; i++){
+    const d = db.deliveries[i];
+    const ord = ordOf(d);
+    const inc = num(d.pay) + num(d.tip);
+    const tp = num(d.tip);
+
+    totalOrd += ord;
+    totalInc += inc;
+    totalTip += tp;
+    delMiles += num(d.miles);
+
+    if(tp > maxTip) maxTip = tp;
+
+    if(d.date){
+      dayInc[d.date] = (dayInc[d.date] || 0) + inc;
+      const day = parseKey(d.date).getDay();
+      if(day === 0 || day === 6) weekendOrd += ord;
+    }
+
+    if(d.platform){
+      platOrd[d.platform] = (platOrd[d.platform] || 0) + ord;
+    }
+
+    if(d.note){
+      if(/雨|rain/i.test(d.note)) rainCount++;
+      if(/冷|雪|寒|cold|snow/i.test(d.note)) coldCount++;
+    }
+  }
+
+  let shiftKm = 0;
+  let nightShifts = 0;
+  let morningShifts = 0;
+  const shiftMap = Object.create(null);
+
+  for(let i=0; i<db.shifts.length; i++){
+    const s = db.shifts[i];
+    shiftKm += num(s.km);
+    if(s.date) shiftMap[s.date] = s;
+
+    if(s.note){
+      if(/雨|rain/i.test(s.note)) rainCount++;
+      if(/冷|雪|寒|cold|snow/i.test(s.note)) coldCount++;
+    }
+
+    if(s.segs && s.segs.length){
+      for(let j=0; j<s.segs.length; j++){
+        const seg = s.segs[j];
+        if(seg.s && seg.s.includes(':')){
+          const h = parseInt(seg.s.split(':')[0], 10);
+          if((h >= 22 && h <= 23) || (h >= 0 && h < 4)) nightShifts++;
+          if(h >= 4 && h < 7) morningShifts++;
+        }
+      }
+    }
+  }
+
+  let maxDay = 0;
+  let maxHr = 0;
+  const curStreak = streak();
+
+  for(const date in dayInc){
+    const inc = dayInc[date];
+    if(inc > maxDay) maxDay = inc;
+
+    const s = shiftMap[date];
+    if(s){
+      const actMin = activeMinOf(s);
+      if(actMin > 0){
+        const hr = inc / (actMin / 60);
+        if(hr > maxHr) maxHr = hr;
+      }
+    }
+  }
+
+  return {
+    totalOrd,
+    totalInc,
+    totalTip,
+    totalKm: delMiles + shiftKm,
+    maxDay,
+    maxHr,
+    maxTip,
+    nightShifts,
+    morningShifts,
+    weekendOrd,
+    curStreak,
+    platOrd,
+    rainCount,
+    coldCount
+  };
+}
 
 const ACHIEVEMENTS=[
   // ── 連續出勤 ──
-  {id:'streak3',cat:'🔥 連續',icon:'🔥',name:'初出茅廬',desc:'連續 3 天有紀錄',tier:'青銅',check:()=>streak()>=3},
-  {id:'streak7',cat:'🔥 連續',icon:'🔥',name:'一週不倒',desc:'連續 7 天有紀錄',tier:'白銀',check:()=>streak()>=7},
-  {id:'streak14',cat:'🔥 連續',icon:'🔥',name:'兩週全勤',desc:'連續 14 天有紀錄',tier:'黃金',check:()=>streak()>=14},
-  {id:'streak30',cat:'🔥 連續',icon:'🔥',name:'月月傳奇',desc:'連續 30 天有紀錄',tier:'鑽石',check:()=>streak()>=30},
+  {id:'streak3',cat:'🔥 連續',icon:'🔥',name:'初出茅廬',desc:'連續 3 天有紀錄',tier:'青銅',check:s=>s.curStreak>=3},
+  {id:'streak7',cat:'🔥 連續',icon:'🔥',name:'一週不倒',desc:'連續 7 天有紀錄',tier:'白銀',check:s=>s.curStreak>=7},
+  {id:'streak14',cat:'🔥 連續',icon:'🔥',name:'兩週全勤',desc:'連續 14 天有紀錄',tier:'黃金',check:s=>s.curStreak>=14},
+  {id:'streak30',cat:'🔥 連續',icon:'🔥',name:'月月傳奇',desc:'連續 30 天有紀錄',tier:'鑽石',check:s=>s.curStreak>=30},
 
   // ── 配送次數 ──
-  {id:'ord1',cat:'⚡ 配送',icon:'📦',name:'菜鳥上路',desc:'完成第 1 單',tier:'青銅',check:()=>_totalOrd()>=1},
-  {id:'ord10',cat:'⚡ 配送',icon:'⚡',name:'新手外送員',desc:'累計 10 次配送',tier:'青銅',check:()=>_totalOrd()>=10},
-  {id:'ord50',cat:'⚡ 配送',icon:'⚡',name:'外送老手',desc:'累計 50 次配送',tier:'白銀',check:()=>_totalOrd()>=50},
-  {id:'ord100',cat:'⚡ 配送',icon:'⚡',name:'百單達人',desc:'累計 100 次配送',tier:'黃金',check:()=>_totalOrd()>=100},
-  {id:'ord500',cat:'⚡ 配送',icon:'⚡',name:'五百單壯士',desc:'累計 500 次配送',tier:'鑽石',check:()=>_totalOrd()>=500},
-  {id:'ord1000',cat:'⚡ 配送',icon:'🏆',name:'千單傳奇',desc:'累計 1000 次配送',tier:'鑽石',check:()=>_totalOrd()>=1000},
+  {id:'ord1',cat:'⚡ 配送',icon:'📦',name:'菜鳥上路',desc:'完成第 1 單',tier:'青銅',check:s=>s.totalOrd>=1},
+  {id:'ord10',cat:'⚡ 配送',icon:'⚡',name:'新手外送員',desc:'累計 10 次配送',tier:'青銅',check:s=>s.totalOrd>=10},
+  {id:'ord50',cat:'⚡ 配送',icon:'⚡',name:'外送老手',desc:'累計 50 次配送',tier:'白銀',check:s=>s.totalOrd>=50},
+  {id:'ord100',cat:'⚡ 配送',icon:'⚡',name:'百單達人',desc:'累計 100 次配送',tier:'黃金',check:s=>s.totalOrd>=100},
+  {id:'ord500',cat:'⚡ 配送',icon:'⚡',name:'五百單壯士',desc:'累計 500 次配送',tier:'鑽石',check:s=>s.totalOrd>=500},
+  {id:'ord1000',cat:'⚡ 配送',icon:'🏆',name:'千單傳奇',desc:'累計 1000 次配送',tier:'鑽石',check:s=>s.totalOrd>=1000},
 
   // ── 單日收入 ──
-  {id:'day100',cat:'💰 收入',icon:'💰',name:'單日破百',desc:'單日收入達 $100',tier:'青銅',check:()=>_maxDay()>=100},
-  {id:'day200',cat:'💰 收入',icon:'💰',name:'兩百俱樂部',desc:'單日收入達 $200',tier:'白銀',check:()=>_maxDay()>=200},
-  {id:'day300',cat:'💰 收入',icon:'👑',name:'日薪之王',desc:'單日收入達 $300',tier:'黃金',check:()=>_maxDay()>=300},
-  {id:'day500',cat:'💰 收入',icon:'💎',name:'神級日薪',desc:'單日收入達 $500',tier:'鑽石',check:()=>_maxDay()>=500},
+  {id:'day100',cat:'💰 收入',icon:'💰',name:'單日破百',desc:'單日收入達 $100',tier:'青銅',check:s=>s.maxDay>=100},
+  {id:'day200',cat:'💰 收入',icon:'💰',name:'兩百俱樂部',desc:'單日收入達 $200',tier:'白銀',check:s=>s.maxDay>=200},
+  {id:'day300',cat:'💰 收入',icon:'👑',name:'日薪之王',desc:'單日收入達 $300',tier:'黃金',check:s=>s.maxDay>=300},
+  {id:'day500',cat:'💰 收入',icon:'💎',name:'神級日薪',desc:'單日收入達 $500',tier:'鑽石',check:s=>s.maxDay>=500},
 
   // ── 累計收入 ──
-  {id:'tot1k',cat:'💰 收入',icon:'💎',name:'千鎚百鍊',desc:'累計收入 $1,000',tier:'白銀',check:()=>_totalInc()>=1000},
-  {id:'tot5k',cat:'💰 收入',icon:'💎',name:'五千富豪',desc:'累計收入 $5,000',tier:'黃金',check:()=>_totalInc()>=5000},
-  {id:'tot10k',cat:'💰 收入',icon:'💎',name:'萬元俱樂部',desc:'累計收入 $10,000',tier:'鑽石',check:()=>_totalInc()>=10000},
-  {id:'tot25k',cat:'💰 收入',icon:'👑',name:'兩萬五傳奇',desc:'累計收入 $25,000',tier:'鑽石',check:()=>_totalInc()>=25000},
+  {id:'tot1k',cat:'💰 收入',icon:'💎',name:'千鎚百鍊',desc:'累計收入 $1,000',tier:'白銀',check:s=>s.totalInc>=1000},
+  {id:'tot5k',cat:'💰 收入',icon:'💎',name:'五千富豪',desc:'累計收入 $5,000',tier:'黃金',check:s=>s.totalInc>=5000},
+  {id:'tot10k',cat:'💰 收入',icon:'💎',name:'萬元俱樂部',desc:'累計收入 $10,000',tier:'鑽石',check:s=>s.totalInc>=10000},
+  {id:'tot25k',cat:'💰 收入',icon:'👑',name:'兩萬五傳奇',desc:'累計收入 $25,000',tier:'鑽石',check:s=>s.totalInc>=25000},
 
   // ── 小費 ──
-  {id:'tip100',cat:'🪙 小費',icon:'🪙',name:'小費達人',desc:'累計小費 $100',tier:'青銅',check:()=>_totalTip()>=100},
-  {id:'tip500',cat:'🪙 小費',icon:'🪙',name:'小費專家',desc:'累計小費 $500',tier:'白銀',check:()=>_totalTip()>=500},
-  {id:'tip1k',cat:'🪙 小費',icon:'💎',name:'小費之王',desc:'累計小費 $1,000',tier:'黃金',check:()=>_totalTip()>=1000},
-  {id:'tipBig',cat:'🪙 小費',icon:'🤑',name:'土豪客人',desc:'單筆小費超過 $15',tier:'白銀',check:()=>db.deliveries.some(d=>num(d.tip)>=15)},
-  {id:'tipGod',cat:'🪙 小費',icon:'🌟',name:'神級小費',desc:'單筆小費超過 $30',tier:'黃金',check:()=>db.deliveries.some(d=>num(d.tip)>=30)},
+  {id:'tip100',cat:'🪙 小費',icon:'🪙',name:'小費達人',desc:'累計小費 $100',tier:'青銅',check:s=>s.totalTip>=100},
+  {id:'tip500',cat:'🪙 小費',icon:'🪙',name:'小費專家',desc:'累計小費 $500',tier:'白銀',check:s=>s.totalTip>=500},
+  {id:'tip1k',cat:'🪙 小費',icon:'💎',name:'小費之王',desc:'累計小費 $1,000',tier:'黃金',check:s=>s.totalTip>=1000},
+  {id:'tipBig',cat:'🪙 小費',icon:'🤑',name:'土豪客人',desc:'單筆小費超過 $15',tier:'白銀',check:s=>s.maxTip>=15},
+  {id:'tipGod',cat:'🪙 小費',icon:'🌟',name:'神級小費',desc:'單筆小費超過 $30',tier:'黃金',check:s=>s.maxTip>=30},
 
   // ── 時段 ──
-  {id:'night10',cat:'🌙 時段',icon:'🌙',name:'夜行者',desc:'10 次在 22 點後開始的班次',tier:'白銀',check:()=>_nightShifts()>=10},
-  {id:'night50',cat:'🌙 時段',icon:'🌙',name:'暗夜之王',desc:'50 次在 22 點後開始的班次',tier:'黃金',check:()=>_nightShifts()>=50},
-  {id:'morn5',cat:'🌙 時段',icon:'🌅',name:'晨行者',desc:'5 次在 04–07 點開始的班次',tier:'白銀',check:()=>_morningShifts()>=5},
-  {id:'wknd50',cat:'🌙 時段',icon:'☕',name:'週末戰士',desc:'週末（六日）累計 50 單',tier:'黃金',check:()=>_weekendOrd()>=50},
+  {id:'night10',cat:'🌙 時段',icon:'🌙',name:'夜行者',desc:'10 次在 22 點後開始的班次',tier:'白銀',check:s=>s.nightShifts>=10},
+  {id:'night50',cat:'🌙 時段',icon:'🌙',name:'暗夜之王',desc:'50 次在 22 點後開始的班次',tier:'黃金',check:s=>s.nightShifts>=50},
+  {id:'morn5',cat:'🌙 時段',icon:'🌅',name:'晨行者',desc:'5 次在 04–07 點開始的班次',tier:'白銀',check:s=>s.morningShifts>=5},
+  {id:'wknd50',cat:'🌙 時段',icon:'☕',name:'週末戰士',desc:'週末（六日）累計 50 單',tier:'黃金',check:s=>s.weekendOrd>=50},
 
   // ── 平台 ──
-  {id:'allPlat',cat:'🎯 平台',icon:'🎯',name:'全能外送員',desc:'每個平台都跑過 10 單',tier:'黃金',check:()=>db.platforms.length>0&&db.platforms.every(p=>db.deliveries.filter(d=>d.platform===p.id).reduce((a,d)=>a+ordOf(d),0)>=10)},
-  {id:'master',cat:'🎯 平台',icon:'👑',name:'平台大師',desc:'每個平台都跑過 50 單',tier:'鑽石',check:()=>db.platforms.length>0&&db.platforms.every(p=>db.deliveries.filter(d=>d.platform===p.id).reduce((a,d)=>a+ordOf(d),0)>=50)},
+  {id:'allPlat',cat:'🎯 平台',icon:'🎯',name:'全能外送員',desc:'每個平台都跑過 10 單',tier:'黃金',check:s=>db.platforms.length>0&&db.platforms.every(p=>(s.platOrd[p.id]||0)>=10)},
+  {id:'master',cat:'🎯 平台',icon:'👑',name:'平台大師',desc:'每個平台都跑過 50 單',tier:'鑽石',check:s=>db.platforms.length>0&&db.platforms.every(p=>(s.platOrd[p.id]||0)>=50)},
 
   // ── 里程 ──
-  {id:'km100',cat:'📏 里程',icon:'🛵',name:'城市騎士',desc:'累計騎行 100 km',tier:'青銅',check:()=>_totalKm()>=100},
-  {id:'km500',cat:'📏 里程',icon:'🛵',name:'長征者',desc:'累計騎行 500 km',tier:'白銀',check:()=>_totalKm()>=500},
-  {id:'km1000',cat:'📏 里程',icon:'🛵',name:'千公里勇士',desc:'累計騎行 1,000 km',tier:'黃金',check:()=>_totalKm()>=1000},
-  {id:'km5000',cat:'📏 里程',icon:'🌍',name:'地球騎士',desc:'累計騎行 5,000 km',tier:'鑽石',check:()=>_totalKm()>=5000},
+  {id:'km100',cat:'📏 里程',icon:'🛵',name:'城市騎士',desc:'累計騎行 100 km',tier:'青銅',check:s=>s.totalKm>=100},
+  {id:'km500',cat:'📏 里程',icon:'🛵',name:'長征者',desc:'累計騎行 500 km',tier:'白銀',check:s=>s.totalKm>=500},
+  {id:'km1000',cat:'📏 里程',icon:'🛵',name:'千公里勇士',desc:'累計騎行 1,000 km',tier:'黃金',check:s=>s.totalKm>=1000},
+  {id:'km5000',cat:'📏 里程',icon:'🌍',name:'地球騎士',desc:'累計騎行 5,000 km',tier:'鑽石',check:s=>s.totalKm>=5000},
 
   // ── 時薪 ──
-  {id:'hr25',cat:'⏱ 時薪',icon:'⏱',name:'效率騎士',desc:'單日時薪達 $25',tier:'白銀',check:()=>_maxHr()>=25},
-  {id:'hr35',cat:'⏱ 時薪',icon:'⏱',name:'速度之王',desc:'單日時薪達 $35',tier:'黃金',check:()=>_maxHr()>=35},
-  {id:'hr50',cat:'⏱ 時薪',icon:'⏱',name:'時薪神話',desc:'單日時薪達 $50',tier:'鑽石',check:()=>_maxHr()>=50},
+  {id:'hr25',cat:'⏱ 時薪',icon:'⏱',name:'效率騎士',desc:'單日時薪達 $25',tier:'白銀',check:s=>s.maxHr>=25},
+  {id:'hr35',cat:'⏱ 時薪',icon:'⏱',name:'速度之王',desc:'單日時薪達 $35',tier:'黃金',check:s=>s.maxHr>=35},
+  {id:'hr50',cat:'⏱ 時薪',icon:'⏱',name:'時薪神話',desc:'單日時薪達 $50',tier:'鑽石',check:s=>s.maxHr>=50},
 
   // ── 特殊 ──
-  {id:'rain',cat:'🌧 特殊',icon:'🌧',name:'雨中騎士',desc:'備註含「雨」達 5 次',tier:'白銀',check:()=>db.deliveries.filter(d=>/雨|rain/i.test(d.note||'')).length+db.shifts.filter(s=>/雨|rain/i.test(s.note||'')).length>=5},
-  {id:'cold',cat:'🌧 特殊',icon:'❄️',name:'寒冬戰士',desc:'備註含「冷／雪／寒」達 5 次',tier:'黃金',check:()=>db.deliveries.filter(d=>/冷|雪|寒|cold|snow/i.test(d.note||'')).length+db.shifts.filter(s=>/冷|雪|寒|cold|snow/i.test(s.note||'')).length>=5}
+  {id:'rain',cat:'🌧 特殊',icon:'🌧',name:'雨中騎士',desc:'備註含「雨」達 5 次',tier:'白銀',check:s=>s.rainCount>=5},
+  {id:'cold',cat:'🌧 特殊',icon:'❄️',name:'寒冬戰士',desc:'備註含「冷／雪／寒」達 5 次',tier:'黃金',check:s=>s.coldCount>=5}
 ];
 
-function checkAchievements(){
+function checkAchievements(options={}){
   if(!db.achievements)db.achievements={};
-  const fresh=[];
+  const stats = computeAchievementStats();
+  const fresh = [];
+
   ACHIEVEMENTS.forEach(a=>{
     if(!db.achievements[a.id]){
-      try{if(a.check()){db.achievements[a.id]=Date.now();fresh.push(a)}}catch(e){}
+      try{
+        if(a.check(stats)){
+          db.achievements[a.id]=Date.now();
+          fresh.push(a);
+          recentUnlocks.add(a.id);
+        }
+      }catch(e){}
     }
   });
+
   if(fresh.length){
     localStorage.setItem(KEY,JSON.stringify(db));
     fbSchedulePush();
-    fresh.forEach((a,i)=>setTimeout(()=>toast(`🏅 解鎖成就：${a.icon} ${a.name}`,'ok'),i*900));
+
+    if(options.silent){
+      // 靜默不跳 Toast
+    } else if(options.batch || fresh.length > 3){
+      toast(`🏅 一次解鎖了 ${fresh.length} 個新成就！`,'ok');
+    } else {
+      fresh.forEach((a,i)=>{
+        setTimeout(()=>toast(`🏅 解鎖成就：${a.icon} ${a.name}`,'ok'), i * 800);
+      });
+    }
   }
   return fresh.length;
 }
 
 function renderAchv(){
   checkAchievements();
-  const unlocked=Object.keys(db.achievements||{}).length;
-  const total=ACHIEVEMENTS.length;
-  const pct=total?Math.round(unlocked/total*100):0;
-  $('#achvCount').textContent=`${unlocked} / ${total}`;
-  $('#achvBar').style.width=pct+'%';
-  $('#achvPct').textContent=pct+'%';
-  const cats=[...new Set(ACHIEVEMENTS.map(a=>a.cat))];
-  let html='';
+  const unlocked = ACHIEVEMENTS.filter(a => db.achievements && db.achievements[a.id]).length;
+  const total = ACHIEVEMENTS.length;
+  const pct = total ? Math.min(100, Math.round(unlocked / total * 100)) : 0;
+
+  $('#achvCount').textContent = `${unlocked} / ${total}`;
+  $('#achvBar').style.width = pct + '%';
+  $('#achvPct').textContent = pct + '%';
+
+  const cats = [...new Set(ACHIEVEMENTS.map(a=>a.cat))];
+  let html = '';
+
   cats.forEach(cat=>{
-    const list=ACHIEVEMENTS.filter(a=>a.cat===cat);
-    const catUnlocked=list.filter(a=>db.achievements&&db.achievements[a.id]).length;
-    html+=`<div class="achv-cat">${cat} <span class="dim" style="font-size:13px;font-weight:600">${catUnlocked}/${list.length}</span></div><div class="achv-grid">`;
+    const list = ACHIEVEMENTS.filter(a=>a.cat===cat);
+    const catUnlocked = list.filter(a => db.achievements && db.achievements[a.id]).length;
+    html += `<div class="achv-cat">${cat} <span class="dim" style="font-size:13px;font-weight:600">${catUnlocked}/${list.length}</span></div><div class="achv-grid">`;
+    
     list.forEach(a=>{
-      const ts=db.achievements&&db.achievements[a.id];
-      const d=ts?new Date(ts):null;
-      html+=`<div class="achv-card ${ts?'unlocked':'locked'}">
+      const ts = db.achievements && db.achievements[a.id];
+      const d = ts ? new Date(ts) : null;
+      const isFresh = recentUnlocks.has(a.id) || (ts && (Date.now() - ts < 60000));
+
+      html += `<div class="achv-card ${ts ? 'unlocked' : 'locked'}${isFresh ? ' fresh' : ''}">
         <div class="icon">${a.icon}</div>
         <div class="name">${esc(a.name)}</div>
         <div class="desc">${esc(a.desc)}</div>
         <div class="meta">
           <span class="tier ${a.tier}">${a.tier}</span>
-          ${d?`<span class="date">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}</span>`:'<span>🔒 未解鎖</span>'}
+          ${d ? `<span class="date">${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}</span>` : '<span>🔒 未解鎖</span>'}
         </div>
       </div>`;
     });
-    html+=`</div>`;
+    html += `</div>`;
   });
-  $('#achvBody').innerHTML=html;
+
+  $('#achvBody').innerHTML = html;
 }
 
 /* ═══════════════ 總覽 ═══════════════ */
@@ -1598,7 +1710,7 @@ $('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=ne
       shifts:Array.isArray(d.shifts)?d.shifts:[],
       deliveries:Array.isArray(d.deliveries)?d.deliveries:[],
       achievements:d.achievements||{}
-    });save();renderAll();toast('匯入成功！','ok')}
+    });save();checkAchievements({silent:true});renderAll();toast('匯入成功！','ok')}
     catch(err){toast('檔案格式不正確','err')}};rd.readAsText(f);e.target.value=''};
 $('#btnDemo').onclick=()=>askConfirm('載入示範資料？會加入過去兩週的假資料（不會清除你現有的紀錄）。',seedDemo);
 $('#btnDemo1').addEventListener('click',()=>seedDemo());
@@ -1618,7 +1730,11 @@ function seedDemo(){const P=['dd','dd','dd','ue','ue','pd'];
         store:['Panda Express','Chipotle','Sushi Bar','McDonald\'s','Thai Basil','Shake Shack','Pho 88','Walmart'][Math.floor(Math.random()*8)],
         miles:Math.round((1.5+Math.random()*10)*10)/10,pay:Math.round((3.5+Math.random()*6)*100)/100,tip,
         minutes:12+Math.floor(Math.random()*25),note:''})}}
-  save();renderAll();toast('示範資料已載入 ✨ 盡情探索吧','ok')}
+  save();
+  checkAchievements({batch:true});
+  renderAll();
+  toast('示範資料已載入 ✨ 盡情探索吧','ok');
+}
 
 /* ═══════════════ Firebase 雲端同步 ═══════════════ */
 const FB_KEY='runlog.fb';
@@ -1762,6 +1878,7 @@ function fbApply(json,notify){try{const d=JSON.parse(json);
   });
   if(myLive)db.live=myLive;
   localStorage.setItem(KEY,JSON.stringify(db));
+  checkAchievements({silent:true});
   renderAll();if(notify)toast('已從雲端更新 ☁','ok')}catch(e){toast('雲端資料解析失敗','err')}}
 
 async function fbPush(silent){if(!fbState.connected||!fbState.ref)return;
