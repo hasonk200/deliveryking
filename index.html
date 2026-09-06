@@ -83,6 +83,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .dot.on{background:var(--ue);box-shadow:0 0 0 0 rgba(23,209,124,.5);animation:pulse 1.6s infinite}
 .dot.br{background:var(--sun);box-shadow:0 0 0 0 rgba(255,210,74,.5);animation:pulse 1.6s infinite}
 .dot.err{background:var(--red)}
+.dot.wait{background:var(--teal);box-shadow:0 0 0 0 rgba(76,201,236,.5);animation:pulse 1.6s infinite}
 #fbPill{cursor:pointer}
 #themeBtn{cursor:pointer;font-size:14px;padding:7px 11px;transition:transform .3s ease}
 #themeBtn:active{transform:scale(.85) rotate(20deg)}
@@ -574,20 +575,22 @@ select.inline{width:auto}
           <div class="shift-btns">
             <button class="btn btn-primary" id="btnStart">▶ 開始跑單</button>
             <button class="btn btn-ghost" id="btnBreak" disabled>☕ 休息一下</button>
+            <button class="btn btn-ghost" id="btnWait" disabled>⏳ 等單中</button>
             <button class="btn btn-danger" id="btnEnd" disabled>⏹ 收工</button>
           </div>
           <div class="shift-chips">
             <span class="chip">今日上線 <b id="chipOnline">0m</b></span>
             <span class="chip">今日活躍 <b id="chipActive">0m</b></span>
-            <span class="chip">休息 <b id="chipBreak">0m</b></span>
+            <span class="chip">☕ 休息 <b id="chipBreak">0m</b></span>
+            <span class="chip">⏳ 等單 <b id="chipWait">0m</b></span>
           </div>
         </div>
 
         <div class="today-grid">
           <div class="card tile accent"><span class="lab"><em>TODAY</em>今日收入</span><span class="val money" id="tIncome">$0.00</span></div>
           <div class="card tile"><span class="lab"><em>ORDERS</em>今日單數</span><span class="val" id="tOrders">0</span></div>
-          <div class="card tile"><span class="lab"><em>$/HR</em>今日時薪</span><span class="val money" id="tHourly">—</span></div>
-          <div class="card tile"><span class="lab"><em>AVG</em>平均每單</span><span class="val money" id="tAvg">—</span></div>
+          <div class="card tile"><span class="lab"><em>ONLINE $/HR</em>上線時薪</span><span class="val money" id="tHourlyOn">—</span></div>
+          <div class="card tile"><span class="lab"><em>ACTIVE $/HR</em>活躍時薪</span><span class="val money" id="tHourlyAc">—</span></div>
         </div>
       </div>
 
@@ -595,7 +598,8 @@ select.inline{width:auto}
         <div class="wb-item"><div class="lab">本週收入 WEEK PAY</div><div class="val money" id="wIncome">$0.00</div></div>
         <div class="wb-item"><div class="lab">上線時間 ONLINE</div><div class="val" id="wOnline">0h</div></div>
         <div class="wb-item"><div class="lab">活躍時間 ACTIVE</div><div class="val" id="wActive">0h</div></div>
-        <div class="wb-item"><div class="lab">平均時薪 AVG $/HR</div><div class="val money" id="wHourly">—</div></div>
+        <div class="wb-item"><div class="lab">上線時薪 ONLINE $/HR</div><div class="val money" id="wHourlyOn">—</div></div>
+        <div class="wb-item"><div class="lab">活躍時薪 ACTIVE $/HR</div><div class="val money" id="wHourlyAc">—</div></div>
         <div class="wb-item">
           <div class="lab">週目標進度 <span class="mono" id="wRange"></span></div>
           <div style="display:flex;align-items:center;gap:11px;margin-top:7px">
@@ -605,13 +609,6 @@ select.inline{width:auto}
         </div>
       </div>
 
-      <!-- 暫時隱藏應收狀況卡
-<div class="card" style="margin-bottom:16px">
-  <h3>應收狀況 <span class="en">PENDING PAYOUTS</span></h3>
-  <div id="pendingBody"></div>
-  <p class="tiny" style="margin-top:10px">＊ 未付 = 累計賺的 − 累計已入帳。去日曆記一筆「💳 入帳」，這裡就會自動扣掉。</p>
-</div>
--->
       <div class="grid-2">
         <div class="card">
           <h3>本週每日收入 <span class="en">DAILY EARNINGS</span></h3>
@@ -671,7 +668,7 @@ select.inline{width:auto}
     <!-- ── 班次工時 ── -->
     <section class="view" id="view-shifts">
       <div class="page-head">
-        <div><h1>班次工時</h1><div class="sub">每日上線時間、活躍時間與休息，一覽無遺。</div></div>
+        <div><h1>班次工時</h1><div class="sub">每日上線時間、活躍時間、暫停與時薪，一覽無遺。</div></div>
       </div>
       <div class="card" style="margin-bottom:16px">
         <h3>手動補登班次 <span class="en">MANUAL ENTRY</span></h3>
@@ -680,6 +677,7 @@ select.inline{width:auto}
           <div><label>上線時間</label><input type="time" id="sStart" value="10:30"></div>
           <div><label>收工時間</label><input type="time" id="sEnd" value="20:30"></div>
           <div><label>休息（分鐘）</label><input type="number" id="sBreak" min="0" value="30"></div>
+          <div><label>等單（分鐘）</label><input type="number" id="sWait" min="0" value="0"></div>
           <div><button class="btn btn-primary" id="sAdd" style="width:100%">＋ 補登</button></div>
         </div>
       </div>
@@ -687,7 +685,7 @@ select.inline{width:auto}
         <h3>近 14 天 <span class="en">LAST 14 DAYS</span></h3>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>日期</th><th>時段</th><th>上線</th><th>活躍</th><th>休息</th><th>單數</th><th>收入</th><th>時薪</th><th></th></tr></thead>
+            <thead><tr><th>日期</th><th>時段</th><th>上線</th><th>活躍</th><th>暫停</th><th>單數</th><th>收入</th><th>上線$</th><th>活躍$</th><th></th></tr></thead>
             <tbody id="shiftList"></tbody>
           </table>
         </div>
@@ -856,7 +854,8 @@ select.inline{width:auto}
       <div><label>上線（小時）</label><input type="number" id="dOnH" min="0" value="0"></div>
       <div><label>上線（分鐘）</label><input type="number" id="dOnM" min="0" max="59" value="0"></div>
       <div><label>休息（分鐘）</label><input type="number" id="dBrM" min="0" value="0"></div>
-      <div><label>總里程 km（選填）</label><input type="number" id="dKm" step="0.1" min="0" placeholder="0"></div>
+      <div><label>等單（分鐘）</label><input type="number" id="dWtM" min="0" value="0"></div>
+      <div class="full"><label>總里程 km（選填）</label><input type="number" id="dKm" step="0.1" min="0" placeholder="0"></div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" id="dCancel">取消</button>
@@ -874,7 +873,8 @@ select.inline{width:auto}
       <div><label>上線（小時）</label><input type="number" id="smOnH" min="0" value="0"></div>
       <div><label>上線（分鐘）</label><input type="number" id="smOnM" min="0" max="59" value="0"></div>
       <div><label>休息（分鐘）</label><input type="number" id="smBrM" min="0" value="0"></div>
-      <div><label>里程 km</label><input type="number" id="smKm" step="0.1" min="0" value="0"></div>
+      <div><label>等單（分鐘）</label><input type="number" id="smWtM" min="0" value="0"></div>
+      <div class="full"><label>里程 km</label><input type="number" id="smKm" step="0.1" min="0" value="0"></div>
       <div class="full"><label>備註</label><input id="smNote" placeholder="選填"></div>
     </div>
     <p class="tiny" style="margin-top:10px">＊ 時段明細僅供顯示，編輯以總時數為準。</p>
@@ -1002,18 +1002,29 @@ const shiftRec=date=>db.shifts.find(s=>s.date===date);
 const incomeOn=k=>db.deliveries.filter(d=>d.date===k).reduce((a,d)=>a+num(d.pay)+num(d.tip),0);
 const ordersOn=k=>db.deliveries.filter(d=>d.date===k).reduce((a,d)=>a+ordOf(d),0);
 const payoutsOn=k=>(db.payouts||[]).filter(p=>p.date===k);
-const activeMinOf=s=>Math.max(0,num(s.onlineMin)-num(s.breakMin));
+const activeMinOf=s=>Math.max(0,num(s.onlineMin)-num(s.breakMin)-num(s.waitMin));
 const sumActive=days=>days.reduce((a,d)=>{const s=shiftRec(dk(d));return a+(s?activeMinOf(s):0)},0);
 const sumOnline=days=>days.reduce((a,d)=>{const s=shiftRec(dk(d));return a+(s?num(s.onlineMin):0)},0);
 const sumShiftKm=days=>days.reduce((a,d)=>{const s=shiftRec(dk(d));return a+(s?num(s.km):0)},0);
-function liveParts(){const l=db.live;if(!l)return{on:0,br:0,live:false};
-  const on=Date.now()-l.startTs, br=l.breakMs+(l.breakStart?Date.now()-l.breakStart:0);return{on,br,live:true,startTs:l.startTs,breakStart:l.breakStart}}
+function liveParts(){
+  const l=db.live;if(!l)return{on:0,br:0,wt:0,live:false};
+  const on=Date.now()-l.startTs,
+        br=num(l.breakMs)+(l.breakStart?Date.now()-l.breakStart:0),
+        wt=num(l.waitMs)+(l.waitStart?Date.now()-l.waitStart:0);
+  return{on,br,wt,live:true,startTs:l.startTs,breakStart:l.breakStart,waitStart:l.waitStart};
+}
 function streak(){let n=0;const d=new Date();const has=k=>db.deliveries.some(x=>x.date===k)||db.shifts.some(s=>s.date===k);
   if(!has(dk(d)))d.setDate(d.getDate()-1);while(has(dk(d))&&n<3650){n++;d.setDate(d.getDate()-1)}return n}
-function addShiftSeg(date,s,e,onMin,brMin){let r=shiftRec(date);
-  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,km:0};db.shifts.push(r)}
+function addShiftSeg(date,s,e,onMin,brMin,wtMin=0){
+  let r=shiftRec(date);
+  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0};db.shifts.push(r)}
   if(!r.segs)r.segs=[];
-  r.segs.push({s,e});r.onlineMin=num(r.onlineMin)+onMin;r.breakMin=num(r.breakMin)+brMin;save();return r}
+  r.segs.push({s,e});
+  r.onlineMin=num(r.onlineMin)+onMin;
+  r.breakMin=num(r.breakMin)+brMin;
+  r.waitMin=num(r.waitMin)+wtMin;
+  save();return r;
+}
 
 /* ═══════════════ UI 小工具 ═══════════════ */
 function toast(msg,type=''){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
@@ -1051,54 +1062,110 @@ function renderCurrent(){
   tick();
 }
 
-/* ═══════════════ 班次計時 ═══════════════ */
-$('#btnStart').onclick=()=>{if(db.live)return;db.live={startTs:Date.now(),breakMs:0,breakStart:null};save();
-  toast('上線！開始接單吧 🛵','ok');syncShiftUI();renderCurrent()};
-$('#btnBreak').onclick=()=>{const l=db.live;if(!l)return;
-  if(l.breakStart){l.breakMs+=Date.now()-l.breakStart;l.breakStart=null;toast('繼續跑單 💨','ok')}
-  else{l.breakStart=Date.now();toast('休息中，時間照算但不計活躍 ☕')}
-  save();syncShiftUI();tick()};
-$('#btnEnd').onclick=()=>{const l=db.live;if(!l)return;
-  if(l.breakStart){l.breakMs+=Date.now()-l.breakStart;l.breakStart=null}
-  const onMin=Math.round((Date.now()-l.startTs)/60000),brMin=Math.round(l.breakMs/60000);
-  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(Date.now()),onMin,brMin);
-  db.live=null;save();toast(`收工！本次上線 ${fmtDur(onMin)}、活躍 ${fmtDur(onMin-brMin)} 🏁`,'ok');
-  syncShiftUI();renderAll()};
-function syncShiftUI(){const l=db.live,on=!!l;
-  $('#btnStart').disabled=on;$('#btnBreak').disabled=!on;$('#btnEnd').disabled=!on;
-  $('#btnBreak').innerHTML=(l&&l.breakStart)?'▶ 繼續跑單':'☕ 休息一下';
-  $('#shiftBadge').textContent=on?(l.breakStart?'休息中':'執勤中'):'未上線';
-  $('#shiftDot').className='dot'+(on?(l.breakStart?' br':' on'):'')}
+/* ═══════════════ 班次計時（含等單狀態）═══════════════ */
+$('#btnStart').onclick=()=>{
+  if(db.live)return;
+  db.live={startTs:Date.now(),breakMs:0,breakStart:null,waitMs:0,waitStart:null};
+  save();toast('上線！開始接單吧 🛵','ok');syncShiftUI();renderCurrent();
+};
+
+$('#btnBreak').onclick=()=>{
+  const l=db.live;if(!l)return;
+  const now=Date.now();
+  if(l.breakStart){
+    l.breakMs+=now-l.breakStart;l.breakStart=null;
+    toast('繼續跑單 💨','ok');
+  }else{
+    if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
+    l.breakStart=now;
+    toast('休息中，時間照算但不計活躍 ☕');
+  }
+  save();syncShiftUI();tick();
+};
+
+$('#btnWait').onclick=()=>{
+  const l=db.live;if(!l)return;
+  const now=Date.now();
+  if(l.waitStart){
+    l.waitMs+=now-l.waitStart;l.waitStart=null;
+    toast('繼續跑單 💨','ok');
+  }else{
+    if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
+    l.waitStart=now;
+    toast('等單中，時間照算但不計活躍 ⏳');
+  }
+  save();syncShiftUI();tick();
+};
+
+$('#btnEnd').onclick=()=>{
+  const l=db.live;if(!l)return;
+  const now=Date.now();
+  if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
+  if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
+  const onMin=Math.round((now-l.startTs)/60000),
+        brMin=Math.round(l.breakMs/60000),
+        wtMin=Math.round(l.waitMs/60000);
+  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(now),onMin,brMin,wtMin);
+  db.live=null;save();
+  toast(`收工！上線 ${fmtDur(onMin)}、活躍 ${fmtDur(onMin-brMin-wtMin)} 🏁`,'ok');
+  syncShiftUI();renderAll();
+};
+
+function syncShiftUI(){
+  const l=db.live,on=!!l;
+  const inBreak=l&&!!l.breakStart, inWait=l&&!!l.waitStart;
+  $('#btnStart').disabled=on;
+  $('#btnEnd').disabled=!on;
+  $('#btnBreak').disabled=!on;
+  $('#btnWait').disabled=!on;
+  $('#btnBreak').innerHTML=inBreak?'▶ 繼續跑單':inWait?'☕ 改休息':'☕ 休息一下';
+  $('#btnWait').innerHTML=inWait?'▶ 繼續跑單':inBreak?'⏳ 改等單':'⏳ 等單中';
+  const stateText=inBreak?'休息中':inWait?'等單中':on?'執勤中':'未上線';
+  $('#shiftBadge').textContent=stateText;
+  $('#shiftDot').className='dot'+(inBreak?' br':inWait?' wait':on?' on':'');
+}
 
 setInterval(tick,1000);
-function tick(){const now=new Date(),p=liveParts(),isToday=!p.live||dk(new Date(p.startTs))===todayKey();
+function tick(){
+  const now=new Date(),p=liveParts(),isToday=!p.live||dk(new Date(p.startTs))===todayKey();
   $('#topDate').textContent=dk(now)+' 週'+WEEK_TW[now.getDay()];
-  const rec=shiftRec(todayKey()),baseOn=(rec?rec.onlineMin:0)*60000,baseBr=(rec?rec.breakMin:0)*60000;
-  const onMs=baseOn+(isToday?p.on:0),brMs=baseBr+(isToday?p.br:0);
+  const rec=shiftRec(todayKey());
+  const baseOn=(rec?num(rec.onlineMin):0)*60000;
+  const baseBr=(rec?num(rec.breakMin):0)*60000;
+  const baseWt=(rec?num(rec.waitMin):0)*60000;
+  const onMs=baseOn+(isToday?p.on:0);
+  const brMs=baseBr+(isToday?p.br:0);
+  const wtMs=baseWt+(isToday?p.wt:0);
   $('#liveClock').textContent=p.live?fmtHMS(p.on):'00:00:00';
   $('#liveClock').style.color=p.live?'var(--sun)':'var(--faint)';
+  const stateText=p.breakStart?'☕ 休息中':p.waitStart?'⏳ 等單中':p.live?'執勤中':'未上線';
   
   if(!p.live){
     $('#shiftMeta').textContent='按下「開始跑單」計時上線';
   } else if(p.breakStart){
     $('#shiftMeta').textContent=`☕ 休息中 · 已休 ${fmtDur(p.br/60000)}（自 ${fmtTime(p.startTs)} 上線）`;
-  } else if(p.br > 0){
-    $('#shiftMeta').textContent=`自 ${fmtTime(p.startTs)} 上線 · 已休 ${fmtDur(p.br/60000)}`;
+  } else if(p.waitStart){
+    $('#shiftMeta').textContent=`⏳ 等單中 · 已等 ${fmtDur(p.wt/60000)}（自 ${fmtTime(p.startTs)} 上線）`;
   } else {
-    $('#shiftMeta').textContent=`自 ${fmtTime(p.startTs)} 上線 · 尚未休息`;
+    const pause=(p.br+p.wt)>0?`（休息 ${fmtDur(p.br/60000)} / 等單 ${fmtDur(p.wt/60000)}）`:'';
+    $('#shiftMeta').textContent=`自 ${fmtTime(p.startTs)} 上線 · 活躍中 ${pause}`;
   }
 
   $('#chipOnline').textContent=fmtDur(onMs/60000);
-  $('#chipActive').textContent=fmtDur((onMs-brMs)/60000);
+  $('#chipActive').textContent=fmtDur((onMs-brMs-wtMs)/60000);
   $('#chipBreak').textContent=fmtDur(brMs/60000);
-  $('#topDot').className='dot'+(p.live?(p.breakStart?' br':' on'):'');
-  $('#sideDot').className=$('#topDot').className;
-  $('#topPillTxt').textContent=p.live?(p.breakStart?'休息中':'執勤中'):'離線';
-  $('#sideState').textContent=$('#topPillTxt').textContent;
-  $('#topPillTime').textContent=p.live?fmtHMS(p.on):'';
-  $('#sideTimer').textContent=p.live?fmtHMS(p.on):'--:--:--'}
+  $('#chipWait').textContent=fmtDur(wtMs/60000);
 
-/* ═══════════════ 成就系統 (O(n) 單次走訪計算) ═══════════════ */
+  const dotCls='dot'+(p.breakStart?' br':p.waitStart?' wait':p.live?' on':'');
+  $('#topDot').className=dotCls;
+  $('#sideDot').className=dotCls;
+  $('#topPillTxt').textContent=stateText;
+  $('#sideState').textContent=stateText;
+  $('#topPillTime').textContent=p.live?fmtHMS(p.on):'';
+  $('#sideTimer').textContent=p.live?fmtHMS(p.on):'--:--:--';
+}
+
+/* ═══════════════ 成就系統 ═══════════════ */
 const recentUnlocks = new Set();
 
 function computeAchievementStats(){
@@ -1172,6 +1239,7 @@ function computeAchievementStats(){
 
   let maxDay = 0;
   let maxHr = 0;
+  let maxHrOn = 0;
   const curStreak = streak();
 
   for(const date in dayInc){
@@ -1181,28 +1249,33 @@ function computeAchievementStats(){
     const s = shiftMap[date];
     if(s){
       const actMin = activeMinOf(s);
+      const onMin = num(s.onlineMin);
       if(actMin > 0){
         const hr = inc / (actMin / 60);
         if(hr > maxHr) maxHr = hr;
+      }
+      if(onMin > 0){
+        const hrOn = inc / (onMin / 60);
+        if(hrOn > maxHrOn) maxHrOn = hrOn;
       }
     }
   }
 
   return {
     totalOrd, totalInc, totalTip, totalKm: delMiles + shiftKm,
-    maxDay, maxHr, maxTip, nightShifts, morningShifts, weekendOrd,
+    maxDay, maxHr, maxHrOn, maxTip, nightShifts, morningShifts, weekendOrd,
     curStreak, platOrd, rainCount, coldCount
   };
 }
 
 const ACHIEVEMENTS=[
-  // ── 連續出勤 ──
+  // 連續出勤
   {id:'streak3',cat:'🔥 連續',icon:'🔥',name:'初出茅廬',desc:'連續 3 天有紀錄',tier:'青銅',check:s=>s.curStreak>=3},
   {id:'streak7',cat:'🔥 連續',icon:'🔥',name:'一週不倒',desc:'連續 7 天有紀錄',tier:'白銀',check:s=>s.curStreak>=7},
   {id:'streak14',cat:'🔥 連續',icon:'🔥',name:'兩週全勤',desc:'連續 14 天有紀錄',tier:'黃金',check:s=>s.curStreak>=14},
   {id:'streak30',cat:'🔥 連續',icon:'🔥',name:'月月傳奇',desc:'連續 30 天有紀錄',tier:'鑽石',check:s=>s.curStreak>=30},
 
-  // ── 配送次數 ──
+  // 配送次數
   {id:'ord1',cat:'⚡ 配送',icon:'📦',name:'菜鳥上路',desc:'完成第 1 單',tier:'青銅',check:s=>s.totalOrd>=1},
   {id:'ord10',cat:'⚡ 配送',icon:'⚡',name:'新手外送員',desc:'累計 10 次配送',tier:'青銅',check:s=>s.totalOrd>=10},
   {id:'ord50',cat:'⚡ 配送',icon:'⚡',name:'外送老手',desc:'累計 50 次配送',tier:'白銀',check:s=>s.totalOrd>=50},
@@ -1210,47 +1283,47 @@ const ACHIEVEMENTS=[
   {id:'ord500',cat:'⚡ 配送',icon:'⚡',name:'五百單壯士',desc:'累計 500 次配送',tier:'鑽石',check:s=>s.totalOrd>=500},
   {id:'ord1000',cat:'⚡ 配送',icon:'🏆',name:'千單傳奇',desc:'累計 1000 次配送',tier:'鑽石',check:s=>s.totalOrd>=1000},
 
-  // ── 單日收入 ──
+  // 單日收入
   {id:'day100',cat:'💰 收入',icon:'💰',name:'單日破百',desc:'單日收入達 $100',tier:'青銅',check:s=>s.maxDay>=100},
   {id:'day200',cat:'💰 收入',icon:'💰',name:'兩百俱樂部',desc:'單日收入達 $200',tier:'白銀',check:s=>s.maxDay>=200},
   {id:'day300',cat:'💰 收入',icon:'👑',name:'日薪之王',desc:'單日收入達 $300',tier:'黃金',check:s=>s.maxDay>=300},
   {id:'day500',cat:'💰 收入',icon:'💎',name:'神級日薪',desc:'單日收入達 $500',tier:'鑽石',check:s=>s.maxDay>=500},
 
-  // ── 累計收入 ──
+  // 累計收入
   {id:'tot1k',cat:'💰 收入',icon:'💎',name:'千鎚百鍊',desc:'累計收入 $1,000',tier:'白銀',check:s=>s.totalInc>=1000},
   {id:'tot5k',cat:'💰 收入',icon:'💎',name:'五千富豪',desc:'累計收入 $5,000',tier:'黃金',check:s=>s.totalInc>=5000},
   {id:'tot10k',cat:'💰 收入',icon:'💎',name:'萬元俱樂部',desc:'累計收入 $10,000',tier:'鑽石',check:s=>s.totalInc>=10000},
   {id:'tot25k',cat:'💰 收入',icon:'👑',name:'兩萬五傳奇',desc:'累計收入 $25,000',tier:'鑽石',check:s=>s.totalInc>=25000},
 
-  // ── 小費 ──
+  // 小費
   {id:'tip100',cat:'🪙 小費',icon:'🪙',name:'小費達人',desc:'累計小費 $100',tier:'青銅',check:s=>s.totalTip>=100},
   {id:'tip500',cat:'🪙 小費',icon:'🪙',name:'小費專家',desc:'累計小費 $500',tier:'白銀',check:s=>s.totalTip>=500},
   {id:'tip1k',cat:'🪙 小費',icon:'💎',name:'小費之王',desc:'累計小費 $1,000',tier:'黃金',check:s=>s.totalTip>=1000},
   {id:'tipBig',cat:'🪙 小費',icon:'🤑',name:'土豪客人',desc:'單筆小費超過 $15',tier:'白銀',check:s=>s.maxTip>=15},
   {id:'tipGod',cat:'🪙 小費',icon:'🌟',name:'神級小費',desc:'單筆小費超過 $30',tier:'黃金',check:s=>s.maxTip>=30},
 
-  // ── 時段 ──
+  // 時段
   {id:'night10',cat:'🌙 時段',icon:'🌙',name:'夜行者',desc:'10 次在 22 點後開始的班次',tier:'白銀',check:s=>s.nightShifts>=10},
   {id:'night50',cat:'🌙 時段',icon:'🌙',name:'暗夜之王',desc:'50 次在 22 點後開始的班次',tier:'黃金',check:s=>s.nightShifts>=50},
   {id:'morn5',cat:'🌙 時段',icon:'🌅',name:'晨行者',desc:'5 次在 04–07 點開始的班次',tier:'白銀',check:s=>s.morningShifts>=5},
   {id:'wknd50',cat:'🌙 時段',icon:'☕',name:'週末戰士',desc:'週末（六日）累計 50 單',tier:'黃金',check:s=>s.weekendOrd>=50},
 
-  // ── 平台 ──
+  // 平台
   {id:'allPlat',cat:'🎯 平台',icon:'🎯',name:'全能外送員',desc:'每個平台都跑過 10 單',tier:'黃金',check:s=>db.platforms.length>0&&db.platforms.every(p=>(s.platOrd[p.id]||0)>=10)},
   {id:'master',cat:'🎯 平台',icon:'👑',name:'平台大師',desc:'每個平台都跑過 50 單',tier:'鑽石',check:s=>db.platforms.length>0&&db.platforms.every(p=>(s.platOrd[p.id]||0)>=50)},
 
-  // ── 里程 ──
+  // 里程
   {id:'km100',cat:'📏 里程',icon:'🛵',name:'城市騎士',desc:'累計騎行 100 km',tier:'青銅',check:s=>s.totalKm>=100},
   {id:'km500',cat:'📏 里程',icon:'🛵',name:'長征者',desc:'累計騎行 500 km',tier:'白銀',check:s=>s.totalKm>=500},
   {id:'km1000',cat:'📏 里程',icon:'🛵',name:'千公里勇士',desc:'累計騎行 1,000 km',tier:'黃金',check:s=>s.totalKm>=1000},
   {id:'km5000',cat:'📏 里程',icon:'🌍',name:'地球騎士',desc:'累計騎行 5,000 km',tier:'鑽石',check:s=>s.totalKm>=5000},
 
-  // ── 時薪 ──
-  {id:'hr25',cat:'⏱ 時薪',icon:'⏱',name:'效率騎士',desc:'單日時薪達 $25',tier:'白銀',check:s=>s.maxHr>=25},
-  {id:'hr35',cat:'⏱ 時薪',icon:'⏱',name:'速度之王',desc:'單日時薪達 $35',tier:'黃金',check:s=>s.maxHr>=35},
-  {id:'hr50',cat:'⏱ 時薪',icon:'⏱',name:'時薪神話',desc:'單日時薪達 $50',tier:'鑽石',check:s=>s.maxHr>=50},
+  // 時薪（採用寬鬆的上線時薪計算）
+  {id:'hr25',cat:'⏱ 時薪',icon:'⏱',name:'效率騎士',desc:'單日上線時薪達 $25',tier:'白銀',check:s=>s.maxHrOn>=25},
+  {id:'hr35',cat:'⏱ 時薪',icon:'⏱',name:'速度之王',desc:'單日上線時薪達 $35',tier:'黃金',check:s=>s.maxHrOn>=35},
+  {id:'hr50',cat:'⏱ 時薪',icon:'⏱',name:'時薪神話',desc:'單日上線時薪達 $50',tier:'鑽石',check:s=>s.maxHrOn>=50},
 
-  // ── 特殊 ──
+  // 特殊
   {id:'rain',cat:'🌧 特殊',icon:'🌧',name:'雨中騎士',desc:'備註含「雨」達 5 次',tier:'白銀',check:s=>s.rainCount>=5},
   {id:'cold',cat:'🌧 特殊',icon:'❄️',name:'寒冬戰士',desc:'備註含「冷／雪／寒」達 5 次',tier:'黃金',check:s=>s.coldCount>=5}
 ];
@@ -1277,7 +1350,7 @@ function checkAchievements(options={}){
     fbSchedulePush();
 
     if(options.silent){
-      // 靜默不提示
+      // 靜默
     } else if(options.batch || fresh.length > 3){
       toast(`🏅 一次解鎖了 ${fresh.length} 個新成就！`,'ok');
     } else {
@@ -1400,39 +1473,59 @@ function renderPending(){
 }
 
 /* ═══════════════ 總覽 ═══════════════ */
-function renderDash(){const now=new Date(),h=now.getHours();
+function renderDash(){
+  const now=new Date(),h=now.getHours();
   $('#greet').textContent=(h<11?'早安，':h<18?'午安，':'晚安，')+esc(db.profile.name)+' 🛵';
   $('#dateLine').textContent=`${now.getMonth()+1}月${now.getDate()}日 · 週${WEEK_TW[now.getDay()]} — ${db.live?'繼續衝！今天也是賺錢的一天':'今天想跑幾單？'}`;
   $('#chipStreak').textContent=streak();
   $('#chipAllOrders').textContent=db.deliveries.reduce((a,d)=>a+ordOf(d),0);
+  
   const k=todayKey(),td=db.deliveries.filter(d=>d.date===k),tInc=td.reduce((a,d)=>a+num(d.pay)+num(d.tip),0);
-  countUp($('#tIncome'),tInc,fmtM);$('#tOrders').textContent=ordersOn(k);
+  countUp($('#tIncome'),tInc,fmtM);
+  $('#tOrders').textContent=ordersOn(k);
+
   const rec=shiftRec(k),p=liveParts(),isToday=p.live&&dk(new Date(p.startTs))===k;
-  const actH=((rec?activeMinOf(rec):0)*60000+(isToday?p.on-p.br:0))/3600000;
-  $('#tHourly').textContent=actH>0.01?fmtM(tInc/actH):'—';
-  $('#tAvg').textContent=ordersOn(k)?fmtM(tInc/ordersOn(k)):'—';
+  const todayOnMs=((rec?num(rec.onlineMin):0)*60000)+(isToday?p.on:0);
+  const todayAcMs=todayOnMs-((rec?num(rec.breakMin):0)*60000+(isToday?p.br:0))-((rec?num(rec.waitMin):0)*60000+(isToday?p.wt:0));
+  const onH=todayOnMs/3600000, acH=todayAcMs/3600000;
+  $('#tHourlyOn').textContent=onH>0.01?fmtM(tInc/onH):'—';
+  $('#tHourlyAc').textContent=acH>0.01?fmtM(tInc/acH):'—';
+
   const days=weekDays(0),keys=days.map(dk),wInc=keys.reduce((a,k2)=>a+incomeOn(k2),0);
   const wOn=sumOnline(days),wAct=sumActive(days);
   countUp($('#wIncome'),wInc,fmtM);
-  $('#wOnline').textContent=fmtDur(wOn);$('#wActive').textContent=fmtDur(wAct);
-  $('#wHourly').textContent=wAct>0?fmtM(wInc/(wAct/60)):'—';
+  $('#wOnline').textContent=fmtDur(wOn);
+  $('#wActive').textContent=fmtDur(wAct);
+  
+  const wOnH=wOn/60, wAcH=wAct/60;
+  $('#wHourlyOn').textContent=wOnH>0.01?fmtM(wInc/wOnH):'—';
+  $('#wHourlyAc').textContent=wAcH>0.01?fmtM(wInc/wAcH):'—';
+
   $('#wRange').textContent=`${days[0].getMonth()+1}/${days[0].getDate()}–${days[6].getMonth()+1}/${days[6].getDate()}`;
   const goal=Math.max(1,db.profile.goal),pct=Math.min(100,wInc/goal*100);
   $('#goalBar').style.width=pct+'%';$('#goalTxt').textContent=Math.round(pct)+'% · '+fmt0(wInc)+' / '+fmt0(db.profile.goal);
   $('#sideGoalTxt').textContent=fmt0(wInc)+' / '+fmt0(db.profile.goal);$('#sideGoalBar').style.width=pct+'%';
-  renderWeekBars(days);renderDonut(keys);renderRecent();
-  $('#emptyCard').style.display=(db.deliveries.length===0&&db.shifts.length===0)?'block':'none'}
+  
+  renderWeekBars(days);
+  renderDonut(keys);
+  renderRecent();
+  $('#emptyCard').style.display=(db.deliveries.length===0&&db.shifts.length===0)?'block':'none';
+}
 
-function renderWeekBars(days){const wrap=$('#weekBars');wrap.innerHTML='';
+function renderWeekBars(days){
+  const wrap=$('#weekBars');wrap.innerHTML='';
   const vals=days.map(d=>incomeOn(dk(d))),mx=Math.max(...vals,1),labels=['一','二','三','四','五','六','日'];
-  days.forEach((d,i)=>{const col=document.createElement('div');col.className='wcol';
+  days.forEach((d,i)=>{
+    const col=document.createElement('div');col.className='wcol';
     const isT=dk(d)===todayKey(),v=vals[i];
     col.innerHTML=`<div class="val">${v?fmt0(v):''}</div><div class="bar zero${isT?' today':''}" title="${labels[i]} ${fmtM(v)}"></div><div class="dow${isT?' t':''}">${labels[i]}</div>`;
     wrap.append(col);const bar=col.querySelector('.bar');
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       if(v>0){bar.classList.remove('zero');bar.style.height=Math.max(6,v/mx*100)+'%'}
       else{bar.classList.add('zero');bar.style.height='3px'}
-    }))})}
+    }));
+  });
+}
 
 function renderDonut(keys){
   const svg=$('#donutSvg'), lg=$('#donutLegend');
@@ -1443,7 +1536,6 @@ function renderDonut(keys){
   })).filter(s=>s.v>0).sort((a,b)=>b.v-a.v);
 
   $('#donutCenter').textContent=fmt0(tot);
-
   const R=48, C=2*Math.PI*R;
   
   if(!tot){
@@ -1483,7 +1575,8 @@ function renderDonut(keys){
 }
 
 function ordBadge(d){return (d.orders&&d.orders>1)?`<span class="chip" style="padding:1px 8px;font-size:10px">×${d.orders}</span>`:''}
-function renderRecent(){const box=$('#recentList'),list=[...db.deliveries].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)).slice(0,6);
+function renderRecent(){
+  const box=$('#recentList'),list=[...db.deliveries].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)).slice(0,6);
   if(!list.length){box.innerHTML='<div class="dim" style="padding:14px;text-align:center">還沒有紀錄 — 按右上角「＋ 記一單」或「📅 當日快記」開始</div>';return}
   box.innerHTML=list.map(d=>{const p=plat(d.platform);return `
     <div class="recent-item hoverable">
@@ -1492,7 +1585,8 @@ function renderRecent(){const box=$('#recentList'),list=[...db.deliveries].sort(
       <span class="dim mono" style="font-size:11.5px">${fmtDateTw(d.date)}${d.miles?` · ${d.miles}km`:''}</span>
       <span class="money" style="margin-left:auto">${fmtM(num(d.pay)+num(d.tip))}</span>
       ${d.tip?`<span class="dim" style="font-size:12px">含小費 ${fmtM(d.tip)}</span>`:''}
-    </div>`}).join('')}
+    </div>`}).join('');
+}
 
 /* ═══════════════ 跑單紀錄 ═══════════════ */
 let delPlatFilter='all',delRange='all';
@@ -1527,7 +1621,8 @@ function renderDels(){
         <button class="icon-btn" data-act="edit" data-id="${d.id}" title="編輯"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
         <button class="icon-btn del" data-act="del" data-id="${d.id}" title="刪除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>
       </td>
-    </tr>`}).join('')}
+    </tr>`}).join('');
+}
 $('#delBody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;
   const d=db.deliveries.find(x=>x.id===b.dataset.id);if(!d)return;
   if(b.dataset.act==='del'){askConfirm(`刪除 ${fmtDateTw(d.date)} 這筆 ${fmtM(num(d.pay)+num(d.tip))} 的紀錄？`,()=>{
@@ -1571,6 +1666,7 @@ function openShiftModal(id){
   $('#smOnH').value=Math.floor((num(s.onlineMin)||0)/60);
   $('#smOnM').value=(num(s.onlineMin)||0)%60;
   $('#smBrM').value=num(s.breakMin)||0;
+  $('#smWtM').value=num(s.waitMin)||0;
   $('#smKm').value=num(s.km)||0;
   $('#smNote').value=s.note||'';
   $('#shiftModal').classList.add('open');
@@ -1581,6 +1677,7 @@ $('#smSave').onclick=()=>{
   const newDate=$('#smDate').value||s.date;
   const onMin=Math.max(0,Math.round(num($('#smOnH').value))*60+Math.round(num($('#smOnM').value)));
   const brMin=Math.max(0,Math.round(num($('#smBrM').value)));
+  const wtMin=Math.max(0,Math.round(num($('#smWtM').value)));
   const km=Math.max(0,num($('#smKm').value));
   const note=$('#smNote').value.trim();
   if(newDate!==s.date){
@@ -1588,6 +1685,7 @@ $('#smSave').onclick=()=>{
     if(exist){
       exist.onlineMin=num(exist.onlineMin)+onMin;
       exist.breakMin=num(exist.breakMin)+brMin;
+      exist.waitMin=num(exist.waitMin)+wtMin;
       exist.km=num(exist.km)+km;
       if(note)exist.note=(exist.note?exist.note+' / ':'')+note;
       if(s.segs)exist.segs=[...(exist.segs||[]),...(s.segs||[])];
@@ -1596,7 +1694,7 @@ $('#smSave').onclick=()=>{
       s.date=newDate;
     }
   }
-  s.onlineMin=onMin;s.breakMin=brMin;s.km=km;s.note=note;
+  s.onlineMin=onMin;s.breakMin=brMin;s.waitMin=wtMin;s.km=km;s.note=note;
   save();$('#shiftModal').classList.remove('open');smId=null;renderAll();
   toast('班次已更新 ✏️','ok');
 };
@@ -1647,29 +1745,37 @@ function renderShifts(){
   const wk=new Set(weekDays(0).map(dk));
   $('#shiftList').innerHTML=rows.map(d=>{
     const k=dk(d),s=shiftRec(k),inc=incomeOn(k),od=ordersOn(k);
-    const on=s?num(s.onlineMin):0,act=s?activeMinOf(s):0,br=s?num(s.breakMin):0;
+    const onMin=s?num(s.onlineMin):0, brMin=s?num(s.breakMin):0, wtMin=s?num(s.waitMin):0;
+    const actMin=s?activeMinOf(s):0;
     const segTxt=s&&s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'<span class="faint">—</span>';
     const extra=(s&&s.km?` · ${s.km}km`:'');
+    const onH=onMin/60, acH=actMin/60;
+    const pauseTxt=(brMin||wtMin)?`${brMin?fmtDur(brMin):'—'} / ${wtMin?fmtDur(wtMin):'—'}`:'<span class="faint">—</span>';
     return `<tr${k===todayKey()?' style="background:#ffd24a0d"':''}>
       <td style="white-space:nowrap">${fmtDateTw(k)} ${wk.has(k)?'<span class="chip" style="padding:1px 8px;font-size:10px">本週</span>':''}</td>
       <td class="mono dim" style="font-size:12px">${segTxt}${extra}</td>
-      <td class="mono">${on?fmtDur(on):'<span class=faint>—</span>'}</td>
-      <td class="mono" style="color:var(--ue)">${act?fmtDur(act):'<span class=faint>—</span>'}</td>
-      <td class="mono dim">${br?fmtDur(br):'—'}</td>
+      <td class="mono">${onMin?fmtDur(onMin):'<span class=faint>—</span>'}</td>
+      <td class="mono" style="color:var(--ue)">${actMin?fmtDur(actMin):'<span class=faint>—</span>'}</td>
+      <td class="mono dim" style="font-size:12px">${pauseTxt}</td>
       <td class="mono">${od||'<span class=faint>—</span>'}</td>
       <td class="money">${inc?fmtM(inc):'<span class=faint>—</span>'}</td>
-      <td class="money" style="color:var(--sun)">${act>0&&inc?fmtM(inc/(act/60)):'—'}</td>
+      <td class="money" style="color:var(--dim)">${onH>0.01?fmtM(inc/onH):'—'}</td>
+      <td class="money" style="color:var(--sun)">${acH>0.01?fmtM(inc/acH):'—'}</td>
       <td style="white-space:nowrap">${s?`<button class="icon-btn" data-sedit="${s.id}" title="編輯班次">✎</button>`:''}</td>
     </tr>`;
   }).join('');
 }
-$('#sAdd').onclick=()=>{const date=$('#sDate').value,st=$('#sStart').value,en=$('#sEnd').value;
+
+$('#sAdd').onclick=()=>{
+  const date=$('#sDate').value,st=$('#sStart').value,en=$('#sEnd').value;
   if(!date||!st||!en){toast('請填齊日期與時間','err');return}
   const[s1,s2]=st.split(':').map(Number),[e1,e2]=en.split(':').map(Number);
   let mins=(e1*60+e2)-(s1*60+s2);if(mins<=0)mins+=1440;
   const br=Math.min(Math.round(num($('#sBreak').value)),mins);
-  addShiftSeg(date,st,en,mins,br);renderAll();
-  toast(`已補登 ${fmtDateTw(date)}：上線 ${fmtDur(mins)}`,'ok')};
+  const wt=Math.min(Math.round(num($('#sWait')?$('#sWait').value:0)),mins-br);
+  addShiftSeg(date,st,en,mins,br,wt);renderAll();
+  toast(`已補登 ${fmtDateTw(date)}：上線 ${fmtDur(mins)}`,'ok');
+};
 
 /* ═══════════════ 日曆 ═══════════════ */
 let calCursor=new Date(),calSel=todayKey();
@@ -1688,12 +1794,14 @@ function renderCal(){
     const s=shiftRec(k);
     if(s){mOn+=num(s.onlineMin);mAct+=activeMinOf(s)}
   }
+  const mOnH=mOn/60,mAcH=mAct/60;
   $('#calMonthStats').innerHTML=`<span class="chip">💰 本月 <b class="money">${fmtM(mInc)}</b></span>
     <span class="chip">📦 <b class="mono">${mOrd}</b> 單</span>
     <span class="chip">💳 入帳 <b class="money" style="color:var(--ue)">${fmtM(mPay)}</b></span>
     <span class="chip">⏱ 上線 <b class="mono">${fmtDur(mOn)}</b></span>
     <span class="chip">⚡ 活躍 <b class="mono">${fmtDur(mAct)}</b></span>
-    <span class="chip">📊 時薪 <b class="money">${mAct>0?fmtM(mInc/(mAct/60)):'—'}</b></span>`;
+    <span class="chip">📊 上線$ <b class="money">${mOnH>0.01?fmtM(mInc/mOnH):'—'}</b></span>
+    <span class="chip">⚡ 活躍$ <b class="money">${mAcH>0.01?fmtM(mInc/mAcH):'—'}</b></span>`;
   
   const first=new Date(y,m,1),off=(first.getDay()+6)%7,gridStart=new Date(y,m,1-off);
   let html='';
@@ -1728,14 +1836,17 @@ function renderCalDay(){
   const inc=dels.reduce((a,x)=>a+num(x.pay)+num(x.tip),0),on=s?num(s.onlineMin):0,act=s?activeMinOf(s):0;
   const paySum=pays.reduce((a,p)=>a+num(p.amount),0);
 
+  const dayOnH=on/60,dayAcH=act/60;
   $('#calDayStats').innerHTML=`<span class="chip">💰 <b class="money">${fmtM(inc)}</b></span>
     <span class="chip">📦 <b class="mono">${ordersOn(k)}</b> 單</span>
     <span class="chip">💳 入帳 <b class="money" style="color:var(--ue)">${paySum?fmtM(paySum):'—'}</b></span>
     <span class="chip">⏱ 上線 <b class="mono">${on?fmtDur(on):'—'}</b></span>
     <span class="chip">⚡ 活躍 <b class="mono">${act?fmtDur(act):'—'}</b></span>
-    <span class="chip">📊 時薪 <b class="money">${act>0&&inc?fmtM(inc/(act/60)):'—'}</b></span>`;
+    <span class="chip">📊 上線$ <b class="money">${dayOnH>0.01?fmtM(inc/dayOnH):'—'}</b></span>
+    <span class="chip">⚡ 活躍$ <b class="money">${dayAcH>0.01?fmtM(inc/dayAcH):'—'}</b></span>`;
   
-  $('#calDayShift').textContent=s?`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'}（休息 ${fmtDur(s.breakMin)}${s.km?` · ${s.km}km`:''}）${s.note?`｜${s.note}`:''}`:'當天沒有班次紀錄';
+  const pauseMeta = s ? `（休息 ${fmtDur(s.breakMin)}${s.waitMin ? ' / 等單 ' + fmtDur(s.waitMin) : ''}${s.km ? ' · ' + s.km + 'km' : ''}）` : '';
+  $('#calDayShift').textContent=s?`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'} ${pauseMeta}${s.note?`｜${s.note}`:''}`:'當天沒有班次紀錄';
   
   $('#calDayPays').innerHTML=pays.map(p=>`<div class="pay-smart">🟢 <b>${esc(plat(p.platform).name)}</b> 已經把 <b class="money" style="color:var(--ue)">${fmtM(p.amount)}</b> 轉到銀行了${p.note?`<span class="dim">｜${esc(p.note)}</span>`:''}
     <button class="icon-btn" data-payedit="${p.id}" style="margin-left:auto" title="編輯">✎</button></div>`).join('');
@@ -1761,19 +1872,40 @@ $('#calAdd').onclick=()=>{openDlModal(null);$('#fDate').value=calSel};
 /* ═══════════════ 收入分析 ═══════════════ */
 let anRange='week';
 $$('.an-btn').forEach(b=>b.onclick=()=>{anRange=b.dataset.r;$$('.an-btn').forEach(x=>x.classList.toggle('on',x===b));renderAna()});
-function renderAna(){let dels,actMin,shiftKm,delMi;
-  if(anRange==='all'){dels=[...db.deliveries];actMin=db.shifts.reduce((a,s)=>a+activeMinOf(s),0);
-    shiftKm=db.shifts.reduce((a,s)=>a+num(s.km),0)}
-  else{const days=weekDays(anRange==='last'?-1:0),keys=new Set(days.map(dk));
-    dels=db.deliveries.filter(d=>keys.has(d.date));actMin=sumActive(days);shiftKm=sumShiftKm(days)}
+function renderAna(){
+  let dels,actMin,shiftKm,delMi;
+  if(anRange==='all'){
+    dels=[...db.deliveries];
+    actMin=db.shifts.reduce((a,s)=>a+activeMinOf(s),0);
+    shiftKm=db.shifts.reduce((a,s)=>a+num(s.km),0);
+  }else{
+    const days=weekDays(anRange==='last'?-1:0),keys=new Set(days.map(dk));
+    dels=db.deliveries.filter(d=>keys.has(d.date));
+    actMin=sumActive(days);
+    shiftKm=sumShiftKm(days);
+  }
   delMi=dels.reduce((a,d)=>a+num(d.miles),0);
   const mi=delMi+shiftKm;
   const rev=dels.reduce((a,d)=>a+num(d.pay)+num(d.tip),0),tip=dels.reduce((a,d)=>a+num(d.tip),0);
   const actH=actMin/60,label={week:'本週',last:'上週',all:'全部'}[anRange];
   const totOrd=dels.reduce((a,d)=>a+ordOf(d),0);
-  $('#anaStrip').innerHTML=[['總收入',fmtM(rev)],['活躍工時',fmtDur(actMin)],['整體時薪',actH>0?fmtM(rev/actH):'—'],
-    ['總單數',String(totOrd)],['平均每單',totOrd?fmtM(rev/totOrd):'—']].map(([l,v])=>
-    `<div class="wb-item"><div class="lab">${l} · ${label}</div><div class="val ${v.startsWith('$')?'money':''}" style="font-size:26px">${v}</div></div>`).join('');
+
+  const totalOnH=actMin/60+((db.shifts.filter(s=>{
+    if(anRange==='all')return true;
+    const keys=new Set(weekDays(anRange==='last'?-1:0).map(dk));
+    return keys.has(s.date);
+  }).reduce((a,s)=>a+num(s.breakMin)+num(s.waitMin),0))/60);
+
+  $('#anaStrip').innerHTML=[
+    ['總收入',fmtM(rev)],
+    ['上線工時',fmtDur(totalOnH*60)],
+    ['活躍工時',fmtDur(actMin)],
+    ['上線時薪',totalOnH>0.01?fmtM(rev/totalOnH):'—'],
+    ['活躍時薪',actH>0?fmtM(rev/actH):'—'],
+    ['總單數',String(totOrd)],
+    ['平均每單',totOrd?fmtM(rev/totOrd):'—']
+  ].map(([l,v])=>`<div class="wb-item"><div class="lab">${l} · ${label}</div><div class="val ${v.startsWith('$')?'money':''}" style="font-size:26px">${v}</div></div>`).join('');
+
   const stats=db.platforms.map(p=>{const ds=dels.filter(d=>d.platform===p.id);
     const r=ds.reduce((a,d)=>a+num(d.pay)+num(d.tip),0),tp=ds.reduce((a,d)=>a+num(d.tip),0),
     m=ds.reduce((a,d)=>a+num(d.miles),0),mn=ds.reduce((a,d)=>a+num(d.minutes),0),
@@ -1813,7 +1945,8 @@ function renderAna(){let dels,actMin,shiftKm,delMi;
   $('#insightList').innerHTML=ins.length?ins.map(t=>`<div class="vrow" style="display:block;padding:10px 0">${t}</div>`).join(''):'<div class="dim">有資料後這裡會出現洞察 ✨</div>'}
 
 /* ═══════════════ 設定 ═══════════════ */
-function renderSet(){$('#setName').value=db.profile.name;$('#setGoal').value=db.profile.goal;$('#setCpm').value=db.profile.cpm;
+function renderSet(){
+  $('#setName').value=db.profile.name;$('#setGoal').value=db.profile.goal;$('#setCpm').value=db.profile.cpm;
   $('#platList').innerHTML=db.platforms.map(p=>{const n=db.deliveries.filter(d=>d.platform===p.id).reduce((a,d)=>a+ordOf(d),0);
     return `<div class="plat-manage-row"><span class="sw-lg" style="background:${safeColor(p.color)}"></span>
       <b>${esc(p.name)}</b><span class="tiny">${n} 單</span>
@@ -1858,20 +1991,27 @@ $('#btnReset').onclick=()=>askConfirm('這會刪除所有紀錄且無法復原�
   db=defaultDB();save();renderAll();toast('已清除全部資料','ok')});
 
 /* ═══════════════ 示範資料 ═══════════════ */
-function seedDemo(){const P=['dd','dd','dd','ue','ue','pd'];
-  for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dk(d);
-    if(Math.random()<.8&&!shiftRec(k)){const sh=9+Math.floor(Math.random()*3),len=7+Math.floor(Math.random()*5);
+function seedDemo(){
+  const P=['dd','dd','dd','ue','ue','pd'];
+  for(let i=13;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);const k=dk(d);
+    if(Math.random()<.8&&!shiftRec(k)){
+      const sh=9+Math.floor(Math.random()*3),len=7+Math.floor(Math.random()*5);
       const st=`${pad(sh)}:${Math.random()<.5?'00':'30'}`,eh=(sh+len)%24;
-      const mins=len*60+(Math.random()<.5?30:0),br=20+Math.floor(Math.random()*40);
-      addShiftSeg(k,st,`${pad(eh)}:${Math.random()<.5?'00':'30'}`,mins,br)}
+      const mins=len*60+(Math.random()<.5?30:0),br=20+Math.floor(Math.random()*30);
+      const wt=15+Math.floor(Math.random()*30);
+      addShiftSeg(k,st,`${pad(eh)}:${Math.random()<.5?'00':'30'}`,mins,br,wt);
+    }
     const n=6+Math.floor(Math.random()*13);
-    for(let j=0;j<n;j++){const pf=P[Math.floor(Math.random()*P.length)],tip=Math.round(Math.random()*700)/100;
+    for(let j=0;j<n;j++){
+      const pf=P[Math.floor(Math.random()*P.length)],tip=Math.round(Math.random()*700)/100;
       db.deliveries.push({id:uid()+j,date:k,platform:pf,
         store:['Panda Express','Chipotle','Sushi Bar','McDonald\'s','Thai Basil','Shake Shack','Pho 88','Walmart'][Math.floor(Math.random()*8)],
         miles:Math.round((1.5+Math.random()*10)*10)/10,pay:Math.round((3.5+Math.random()*6)*100)/100,tip,
-        minutes:12+Math.floor(Math.random()*25),note:''})}}
+        minutes:12+Math.floor(Math.random()*25),note:''});
+    }
+  }
 
-  // 模擬入帳
   const d1 = new Date(); d1.setDate(d1.getDate() - 7);
   const d2 = new Date(); d2.setDate(d2.getDate() - 2);
   db.payouts.push(
@@ -1962,30 +2102,38 @@ function loadDayData(k){
     row.querySelector('.dr-amt').value=sd.pay?sd.pay:'';});
   }else{db.platforms.forEach(p=>addDRow(p.id))}
   const r=shiftRec(k);
-  const q=r&&r.q?r.q:(r&&(!r.segs||!r.segs.length||r.segs.every(g=>g.s==='快記'))?{on:r.onlineMin||0,br:r.breakMin||0,km:r.km||0,note:r.note||''}:null);
+  const q=r&&r.q?r.q:(r&&(!r.segs||!r.segs.length||r.segs.every(g=>g.s==='快記'))?{on:r.onlineMin||0,br:r.breakMin||0,wt:r.waitMin||0,km:r.km||0,note:r.note||''}:null);
   $('#dOnH').value=q?Math.floor((q.on||0)/60):0;
   $('#dOnM').value=q?(q.on||0)%60:0;
   $('#dBrM').value=q?(q.br||0):0;
+  $('#dWtM').value=q?(q.wt||0):0;
   $('#dKm').value=q&&q.km?q.km:'';
   $('#dNote').value=q&&q.note?q.note:'';
-  const has=sums.length>0||!!(q&&(q.on||q.br||q.km||q.note));
+  const has=sums.length>0||!!(q&&(q.on||q.br||q.wt||q.km||q.note));
   const h2=document.querySelector('#dayModal h2');
-  if(h2)h2.textContent=has?'📅 編輯當日資料':'📅 當日快記'}
+  if(h2)h2.textContent=has?'📅 編輯當日資料':'📅 當日快記';
+}
 function openDayModal(){const k=todayKey();$('#dDate').value=k;loadDayData(k);$('#dayModal').classList.add('open')}
 $('#dDate').addEventListener('change',e=>loadDayData(e.target.value||todayKey()));
 $('#dCancel').onclick=()=>$('#dayModal').classList.remove('open');
-function clearQ(date){const r=shiftRec(date);if(!r)return;const q=r.q||{on:0,br:0,km:0,note:''};
+
+function clearQ(date){
+  const r=shiftRec(date);if(!r)return;const q=r.q||{on:0,br:0,wt:0,km:0,note:''};
   r.onlineMin=Math.max(0,num(r.onlineMin)-num(q.on));
   r.breakMin=Math.max(0,num(r.breakMin)-num(q.br));
+  r.waitMin=Math.max(0,num(r.waitMin)-num(q.wt||0));
   r.km=Math.max(0,num(r.km)-num(q.km));
   if(q.note&&r.note===q.note)r.note='';
   r.segs=(r.segs||[]).filter(g=>g.s!=='快記');
-  r.q={on:0,br:0,km:0,note:''};
-  if(r.onlineMin===0&&r.breakMin===0&&num(r.km)===0&&!(r.segs&&r.segs.length))db.shifts=db.shifts.filter(s=>s.id!==r.id)}
+  r.q={on:0,br:0,wt:0,km:0,note:''};
+  if(r.onlineMin===0&&r.breakMin===0&&num(r.waitMin)===0&&num(r.km)===0&&!(r.segs&&r.segs.length))db.shifts=db.shifts.filter(s=>s.id!==r.id);
+}
+
 $('#dSave').onclick=()=>{
   const date=$('#dDate').value||todayKey();
   const onMin=Math.max(0,Math.round(num($('#dOnH').value))*60+Math.round(num($('#dOnM').value)));
   const brMin=Math.max(0,Math.round(num($('#dBrM').value)));
+  const wtMin=Math.max(0,Math.round(num($('#dWtM').value)));
   const km=Math.max(0,num($('#dKm').value));
   const note=$('#dNote').value.trim();
   const rowsData=[];
@@ -1996,25 +2144,36 @@ $('#dSave').onclick=()=>{
     const amt=Math.max(0,num(row.querySelector('.dr-amt').value));
     if(ordersVal!==''||amt>0)rowsData.push({pid,orders,amt})});
   const r0=shiftRec(date),q0=r0&&r0.q?r0.q:null;
-  const hasOld=db.deliveries.some(d=>d.date===date&&d.summary)||!!(q0&&(q0.on||q0.br||q0.km||q0.note));
-  if(!rowsData.length&&!onMin&&!brMin&&!km&&!note){
+  const hasOld=db.deliveries.some(d=>d.date===date&&d.summary)||!!(q0&&(q0.on||q0.br||q0.wt||q0.km||q0.note));
+  
+  if(!rowsData.length&&!onMin&&!brMin&&!wtMin&&!km&&!note){
     if(hasOld){askConfirm('所有欄位都是空的，要清除 '+fmtDateTw(date)+' 的快記資料嗎？',()=>{
       db.deliveries=db.deliveries.filter(d=>!(d.date===date&&d.summary));
       clearQ(date);save();$('#dayModal').classList.remove('open');renderAll();toast('已清除 '+fmtDateTw(date)+' 的快記資料')});
     } else toast('請至少填一個欄位','err');
-    return}
+    return;
+  }
+
   db.deliveries=db.deliveries.filter(d=>!(d.date===date&&d.summary));
   rowsData.forEach(rd=>db.deliveries.push({id:uid(),date,platform:rd.pid,orders:rd.orders,
     pay:rd.amt,tip:0,miles:0,minutes:0,store:'每日快記',summary:true,note:''}));
   clearQ(date);
-  if(onMin||brMin||km||note){let r=shiftRec(date);
-    if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,km:0};db.shifts.push(r)}
-    r.onlineMin=num(r.onlineMin)+onMin;r.breakMin=num(r.breakMin)+brMin;r.km=num(r.km)+km;
+  
+  if(onMin||brMin||wtMin||km||note){
+    let r=shiftRec(date);
+    if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0};db.shifts.push(r)}
+    r.onlineMin=num(r.onlineMin)+onMin;
+    r.breakMin=num(r.breakMin)+brMin;
+    r.waitMin=num(r.waitMin)+wtMin;
+    r.km=num(r.km)+km;
     if(note)r.note=note;
     if(onMin){if(!r.segs)r.segs=[];r.segs.push({s:'快記',e:''})}
-    r.q={on:onMin,br:brMin,km:km,note:note}}
+    r.q={on:onMin,br:brMin,wt:wtMin,km:km,note:note};
+  }
+  
   save();$('#dayModal').classList.remove('open');renderAll();
-  toast('已儲存 '+fmtDateTw(date)+' 的資料 📅','ok')};
+  toast('已儲存 '+fmtDateTw(date)+' 的資料 📅','ok');
+};
 
 function fbApply(json,notify){try{const d=JSON.parse(json);
   const myLive=db.live;
