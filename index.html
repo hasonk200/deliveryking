@@ -359,6 +359,15 @@ select.inline{width:auto}
 .pend-row .amt{margin-left:auto;font-family:var(--mono);font-weight:700}
 .pend-row .amt.owe{color:var(--sun)}
 .pend-row .amt.ok{color:var(--ue)}
+
+/* ═══════════════ 班次詳情時間段 ═══════════════ */
+.shift-timeline{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.7}
+.shift-timeline .seg{display:inline-block;padding:2px 6px;margin:2px 4px 2px 0;
+  background:rgba(255,255,255,.04);border-radius:4px;font-family:var(--mono)}
+:root[data-theme="light"] .shift-timeline .seg{background:rgba(0,0,0,.05)}
+.shift-timeline .seg.br{color:#f0b429}
+.shift-timeline .seg.wt{color:#4cc9ec}
+.shift-timeline .seg.on{color:var(--ue)}
 </style>
 </head>
 <body>
@@ -1015,14 +1024,20 @@ function liveParts(){
 }
 function streak(){let n=0;const d=new Date();const has=k=>db.deliveries.some(x=>x.date===k)||db.shifts.some(s=>s.date===k);
   if(!has(dk(d)))d.setDate(d.getDate()-1);while(has(dk(d))&&n<3650){n++;d.setDate(d.getDate()-1)}return n}
-function addShiftSeg(date,s,e,onMin,brMin,wtMin=0){
+
+/* ── ① addShiftSeg：支援 breakSegs / waitSegs ── */
+function addShiftSeg(date,s,e,onMin,brMin,wtMin=0,breakSegs=[],waitSegs=[]){
   let r=shiftRec(date);
-  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0};db.shifts.push(r)}
+  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0,breakSegs:[],waitSegs:[]};db.shifts.push(r)}
   if(!r.segs)r.segs=[];
+  if(!r.breakSegs)r.breakSegs=[];
+  if(!r.waitSegs)r.waitSegs=[];
   r.segs.push({s,e});
   r.onlineMin=num(r.onlineMin)+onMin;
   r.breakMin=num(r.breakMin)+brMin;
   r.waitMin=num(r.waitMin)+wtMin;
+  if(breakSegs.length)r.breakSegs.push(...breakSegs);
+  if(waitSegs.length)r.waitSegs.push(...waitSegs);
   save();return r;
 }
 
@@ -1065,47 +1080,83 @@ function renderCurrent(){
 /* ═══════════════ 班次計時（含等單狀態）═══════════════ */
 $('#btnStart').onclick=()=>{
   if(db.live)return;
-  db.live={startTs:Date.now(),breakMs:0,breakStart:null,waitMs:0,waitStart:null};
+  db.live={startTs:Date.now(),breakMs:0,breakStart:null,waitMs:0,waitStart:null,breakSegs:[],waitSegs:[]};
   save();toast('上線！開始接單吧 🛵','ok');syncShiftUI();renderCurrent();
 };
 
+/* ── ③ btnBreak：記錄休息時間段 ── */
 $('#btnBreak').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
+  if(!l.breakSegs)l.breakSegs=[];
+  if(!l.waitSegs)l.waitSegs=[];
   if(l.breakStart){
-    l.breakMs+=now-l.breakStart;l.breakStart=null;
+    l.breakMs+=now-l.breakStart;
+    l.breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
+    l.breakStart=null;
     toast('繼續跑單 💨','ok');
   }else{
-    if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
+    if(l.waitStart){
+      l.waitMs+=now-l.waitStart;
+      l.waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
+      l.waitStart=null;
+    }
     l.breakStart=now;
     toast('休息中，時間照算但不計活躍 ☕');
   }
   save();syncShiftUI();tick();
 };
 
+/* ── ③ btnWait：記錄等單時間段 ── */
 $('#btnWait').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
+  if(!l.breakSegs)l.breakSegs=[];
+  if(!l.waitSegs)l.waitSegs=[];
   if(l.waitStart){
-    l.waitMs+=now-l.waitStart;l.waitStart=null;
+    l.waitMs+=now-l.waitStart;
+    l.waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
+    l.waitStart=null;
     toast('繼續跑單 💨','ok');
   }else{
-    if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
+    if(l.breakStart){
+      l.breakMs+=now-l.breakStart;
+      l.breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
+      l.breakStart=null;
+    }
     l.waitStart=now;
     toast('等單中，時間照算但不計活躍 ⏳');
   }
   save();syncShiftUI();tick();
 };
 
+/* ── ② btnEnd：收工時封存進行中的時段 ── */
 $('#btnEnd').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
-  if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
-  if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
+
+  // 先收尾「正在進行中」的休息／等單，再跟歷史分段合併
+  const breakSegs=[],waitSegs=[];
+  if(l.breakStart){
+    l.breakMs+=now-l.breakStart;
+    breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
+    l.breakStart=null;
+  }
+  if(l.waitStart){
+    l.waitMs+=now-l.waitStart;
+    waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
+    l.waitStart=null;
+  }
+  if(l.breakSegs)breakSegs.push(...l.breakSegs);
+  if(l.waitSegs)waitSegs.push(...l.waitSegs);
+
   const onMin=Math.round((now-l.startTs)/60000),
         brMin=Math.round(l.breakMs/60000),
         wtMin=Math.round(l.waitMs/60000);
-  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(now),onMin,brMin,wtMin);
+
+  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(now),
+              onMin,brMin,wtMin,breakSegs,waitSegs);
+
   db.live=null;save();
   toast(`收工！上線 ${fmtDur(onMin)}、活躍 ${fmtDur(onMin-brMin-wtMin)} 🏁`,'ok');
   syncShiftUI();renderAll();
@@ -1689,6 +1740,8 @@ $('#smSave').onclick=()=>{
       exist.km=num(exist.km)+km;
       if(note)exist.note=(exist.note?exist.note+' / ':'')+note;
       if(s.segs)exist.segs=[...(exist.segs||[]),...(s.segs||[])];
+      if(s.breakSegs)exist.breakSegs=[...(exist.breakSegs||[]),...s.breakSegs];
+      if(s.waitSegs)exist.waitSegs=[...(exist.waitSegs||[]),...s.waitSegs];
       db.shifts=db.shifts.filter(x=>x.id!==s.id);
     } else {
       s.date=newDate;
@@ -1844,9 +1897,30 @@ function renderCalDay(){
     <span class="chip">⚡ 活躍 <b class="mono">${act?fmtDur(act):'—'}</b></span>
     <span class="chip">📊 上線$ <b class="money">${dayOnH>0.01?fmtM(inc/dayOnH):'—'}</b></span>
     <span class="chip">⚡ 活躍$ <b class="money">${dayAcH>0.01?fmtM(inc/dayAcH):'—'}</b></span>`;
-  
-  const pauseMeta = s ? `（休息 ${fmtDur(s.breakMin)}${s.waitMin ? ' / 等單 ' + fmtDur(s.waitMin) : ''}${s.km ? ' · ' + s.km + 'km' : ''}）` : '';
-  $('#calDayShift').textContent=s?`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'} ${pauseMeta}${s.note?`｜${s.note}`:''}`:'當天沒有班次紀錄';
+
+  /* ── ⑤ 日曆詳情：顯示休息／等單時間段 ── */
+  if(s){
+    const pauseMeta = `（休息 ${fmtDur(s.breakMin)}${s.waitMin ? ' / 等單 ' + fmtDur(s.waitMin) : ''}${s.km ? ' · ' + s.km + 'km' : ''}）`;
+    let txt=`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'} ${pauseMeta}${s.note?`｜${esc(s.note)}`:''}`;
+
+    const hasBreakSegs=s.breakSegs&&s.breakSegs.length;
+    const hasWaitSegs=s.waitSegs&&s.waitSegs.length;
+    if(hasBreakSegs||hasWaitSegs){
+      txt+=`<div class="shift-timeline">`;
+      if(hasBreakSegs){
+        txt+=`<span style="color:#f0b429">☕ 休息：</span>`;
+        txt+=s.breakSegs.map(seg=>`<span class="seg br">${esc(seg.s)}–${esc(seg.e)}</span>`).join('');
+      }
+      if(hasWaitSegs){
+        txt+=`${hasBreakSegs?'<br>':''}<span style="color:#4cc9ec">⏳ 等單：</span>`;
+        txt+=s.waitSegs.map(seg=>`<span class="seg wt">${esc(seg.s)}–${esc(seg.e)}</span>`).join('');
+      }
+      txt+=`</div>`;
+    }
+    $('#calDayShift').innerHTML=txt;
+  }else{
+    $('#calDayShift').textContent='當天沒有班次紀錄';
+  }
   
   $('#calDayPays').innerHTML=pays.map(p=>`<div class="pay-smart">🟢 <b>${esc(plat(p.platform).name)}</b> 已經把 <b class="money" style="color:var(--ue)">${fmtM(p.amount)}</b> 轉到銀行了${p.note?`<span class="dim">｜${esc(p.note)}</span>`:''}
     <button class="icon-btn" data-payedit="${p.id}" style="margin-left:auto" title="編輯">✎</button></div>`).join('');
@@ -1927,7 +2001,7 @@ function renderAna(){
       </div>
       <div class="meter"><i style="width:0%"></i></div>
     </div>`).join('')||'<div class="card dim">這個範圍內還沒有資料</div>';
-  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('#platCards .meter i').forEach((el,i)=>{if(stats[i])el.style.width=(stats[i].rev/maxRev*100)+'%'})));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('#platCards .meter i').forEach((el,i)=>{if(stats[i])el.style.width=(stats[i].rev/maxRev*100)+'%')})));
   const cpm=num(db.profile.cpm),cost=mi*cpm;
   $('#vehMiles').textContent=mi.toFixed(1)+' km';
   $('#vehPerMile').textContent=mi>0?fmtM(rev/mi):'—';
