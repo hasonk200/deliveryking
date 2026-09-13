@@ -2001,7 +2001,7 @@ function renderAna(){
       </div>
       <div class="meter"><i style="width:0%"></i></div>
     </div>`).join('')||'<div class="card dim">這個範圍內還沒有資料</div>';
-  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('#platCards .meter i').forEach((el,i)=>{if(stats[i])el.style.width=(stats[i].rev/maxRev*100)+'%')})));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('#platCards .meter i').forEach((el,i)=>{if(stats[i])el.style.width=(stats[i].rev/maxRev*100)+'%'})));
   const cpm=num(db.profile.cpm),cost=mi*cpm;
   $('#vehMiles').textContent=mi.toFixed(1)+' km';
   $('#vehPerMile').textContent=mi>0?fmtM(rev/mi):'—';
