@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RUNLOG｜多平台外送日誌</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1418" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RUNLOG">
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='36' fill='%23ffd24a'/><text x='90' y='125' font-size='100' text-anchor='middle'>🛵</text></svg>">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛵</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -359,15 +366,26 @@ select.inline{width:auto}
 .pend-row .amt{margin-left:auto;font-family:var(--mono);font-weight:700}
 .pend-row .amt.owe{color:var(--sun)}
 .pend-row .amt.ok{color:var(--ue)}
-
-/* ═══════════════ 班次詳情時間段 ═══════════════ */
-.shift-timeline{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.7}
-.shift-timeline .seg{display:inline-block;padding:2px 6px;margin:2px 4px 2px 0;
-  background:rgba(255,255,255,.04);border-radius:4px;font-family:var(--mono)}
-:root[data-theme="light"] .shift-timeline .seg{background:rgba(0,0,0,.05)}
-.shift-timeline .seg.br{color:#f0b429}
-.shift-timeline .seg.wt{color:#4cc9ec}
-.shift-timeline .seg.on{color:var(--ue)}
+/* ═══════════════ 数字排版升級 ═══════════════ */
+.money,.mono,.live-clock,.cal-cell .ci,.cal-cell .cs,.wb-item .val,.tile .val,
+.pcard .hourly,.pcard .rows span:last-child,.vrow b,.chip b,.dz .money{
+  font-variant-numeric:tabular-nums lining-nums;
+}
+.money{letter-spacing:-.3px}
+.wb-item{flex:1 1 auto;min-width:140px;padding:6px 20px}
+.wb-item .val{white-space:nowrap;letter-spacing:-.5px}
+.wb-item .val.money{font-size:24px;letter-spacing:-.6px}
+.ana-strip{padding:16px 8px;row-gap:12px}
+.ana-strip .wb-item{border-right:1px dashed var(--line)}
+.ana-strip .wb-item:last-child{border-right:0}
+.ana-val{font-size:24px;white-space:nowrap;letter-spacing:-.4px}
+.ana-val.money{font-size:22px}
+.tile .val{letter-spacing:-.5px}
+.tile .val.money{letter-spacing:-1px}
+.pcard .hourly{letter-spacing:-1px}
+.pcard .hourly .nohr{font-size:26px;color:var(--faint);font-family:var(--mono);letter-spacing:0}
+.pcard .rows span:last-child{letter-spacing:-.2px}
+.dz .money{letter-spacing:-.5px}
 </style>
 </head>
 <body>
@@ -1024,20 +1042,14 @@ function liveParts(){
 }
 function streak(){let n=0;const d=new Date();const has=k=>db.deliveries.some(x=>x.date===k)||db.shifts.some(s=>s.date===k);
   if(!has(dk(d)))d.setDate(d.getDate()-1);while(has(dk(d))&&n<3650){n++;d.setDate(d.getDate()-1)}return n}
-
-/* ── ① addShiftSeg：支援 breakSegs / waitSegs ── */
-function addShiftSeg(date,s,e,onMin,brMin,wtMin=0,breakSegs=[],waitSegs=[]){
+function addShiftSeg(date,s,e,onMin,brMin,wtMin=0){
   let r=shiftRec(date);
-  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0,breakSegs:[],waitSegs:[]};db.shifts.push(r)}
+  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0};db.shifts.push(r)}
   if(!r.segs)r.segs=[];
-  if(!r.breakSegs)r.breakSegs=[];
-  if(!r.waitSegs)r.waitSegs=[];
   r.segs.push({s,e});
   r.onlineMin=num(r.onlineMin)+onMin;
   r.breakMin=num(r.breakMin)+brMin;
   r.waitMin=num(r.waitMin)+wtMin;
-  if(breakSegs.length)r.breakSegs.push(...breakSegs);
-  if(waitSegs.length)r.waitSegs.push(...waitSegs);
   save();return r;
 }
 
@@ -1080,83 +1092,47 @@ function renderCurrent(){
 /* ═══════════════ 班次計時（含等單狀態）═══════════════ */
 $('#btnStart').onclick=()=>{
   if(db.live)return;
-  db.live={startTs:Date.now(),breakMs:0,breakStart:null,waitMs:0,waitStart:null,breakSegs:[],waitSegs:[]};
+  db.live={startTs:Date.now(),breakMs:0,breakStart:null,waitMs:0,waitStart:null};
   save();toast('上線！開始接單吧 🛵','ok');syncShiftUI();renderCurrent();
 };
 
-/* ── ③ btnBreak：記錄休息時間段 ── */
 $('#btnBreak').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
-  if(!l.breakSegs)l.breakSegs=[];
-  if(!l.waitSegs)l.waitSegs=[];
   if(l.breakStart){
-    l.breakMs+=now-l.breakStart;
-    l.breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
-    l.breakStart=null;
+    l.breakMs+=now-l.breakStart;l.breakStart=null;
     toast('繼續跑單 💨','ok');
   }else{
-    if(l.waitStart){
-      l.waitMs+=now-l.waitStart;
-      l.waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
-      l.waitStart=null;
-    }
+    if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
     l.breakStart=now;
     toast('休息中，時間照算但不計活躍 ☕');
   }
   save();syncShiftUI();tick();
 };
 
-/* ── ③ btnWait：記錄等單時間段 ── */
 $('#btnWait').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
-  if(!l.breakSegs)l.breakSegs=[];
-  if(!l.waitSegs)l.waitSegs=[];
   if(l.waitStart){
-    l.waitMs+=now-l.waitStart;
-    l.waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
-    l.waitStart=null;
+    l.waitMs+=now-l.waitStart;l.waitStart=null;
     toast('繼續跑單 💨','ok');
   }else{
-    if(l.breakStart){
-      l.breakMs+=now-l.breakStart;
-      l.breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
-      l.breakStart=null;
-    }
+    if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
     l.waitStart=now;
     toast('等單中，時間照算但不計活躍 ⏳');
   }
   save();syncShiftUI();tick();
 };
 
-/* ── ② btnEnd：收工時封存進行中的時段 ── */
 $('#btnEnd').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
-
-  // 先收尾「正在進行中」的休息／等單，再跟歷史分段合併
-  const breakSegs=[],waitSegs=[];
-  if(l.breakStart){
-    l.breakMs+=now-l.breakStart;
-    breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
-    l.breakStart=null;
-  }
-  if(l.waitStart){
-    l.waitMs+=now-l.waitStart;
-    waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
-    l.waitStart=null;
-  }
-  if(l.breakSegs)breakSegs.push(...l.breakSegs);
-  if(l.waitSegs)waitSegs.push(...l.waitSegs);
-
+  if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
+  if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
   const onMin=Math.round((now-l.startTs)/60000),
         brMin=Math.round(l.breakMs/60000),
         wtMin=Math.round(l.waitMs/60000);
-
-  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(now),
-              onMin,brMin,wtMin,breakSegs,waitSegs);
-
+  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(now),onMin,brMin,wtMin);
   db.live=null;save();
   toast(`收工！上線 ${fmtDur(onMin)}、活躍 ${fmtDur(onMin-brMin-wtMin)} 🏁`,'ok');
   syncShiftUI();renderAll();
@@ -1705,6 +1681,7 @@ $('#fSave').onclick=()=>{const date=$('#fDate').value||todayKey();
   save();$('#dlModal').classList.remove('open');editId=null;renderAll();toast('已記錄一單 💰','ok')};
 $('#fCancel').onclick=()=>{$('#dlModal').classList.remove('open');editId=null};
 $('#btnAddDl').onclick=()=>openDlModal(null);
+<button class="pill" id="installBtn" style="display:none;cursor:pointer" title="安裝到桌面">📱 安裝 App</button>
 $('#btnQuickAdd').onclick=()=>openDlModal(null);
 $('#btnFirst').addEventListener('click',()=>openDlModal(null));
 
@@ -1740,8 +1717,6 @@ $('#smSave').onclick=()=>{
       exist.km=num(exist.km)+km;
       if(note)exist.note=(exist.note?exist.note+' / ':'')+note;
       if(s.segs)exist.segs=[...(exist.segs||[]),...(s.segs||[])];
-      if(s.breakSegs)exist.breakSegs=[...(exist.breakSegs||[]),...s.breakSegs];
-      if(s.waitSegs)exist.waitSegs=[...(exist.waitSegs||[]),...s.waitSegs];
       db.shifts=db.shifts.filter(x=>x.id!==s.id);
     } else {
       s.date=newDate;
@@ -1897,30 +1872,9 @@ function renderCalDay(){
     <span class="chip">⚡ 活躍 <b class="mono">${act?fmtDur(act):'—'}</b></span>
     <span class="chip">📊 上線$ <b class="money">${dayOnH>0.01?fmtM(inc/dayOnH):'—'}</b></span>
     <span class="chip">⚡ 活躍$ <b class="money">${dayAcH>0.01?fmtM(inc/dayAcH):'—'}</b></span>`;
-
-  /* ── ⑤ 日曆詳情：顯示休息／等單時間段 ── */
-  if(s){
-    const pauseMeta = `（休息 ${fmtDur(s.breakMin)}${s.waitMin ? ' / 等單 ' + fmtDur(s.waitMin) : ''}${s.km ? ' · ' + s.km + 'km' : ''}）`;
-    let txt=`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'} ${pauseMeta}${s.note?`｜${esc(s.note)}`:''}`;
-
-    const hasBreakSegs=s.breakSegs&&s.breakSegs.length;
-    const hasWaitSegs=s.waitSegs&&s.waitSegs.length;
-    if(hasBreakSegs||hasWaitSegs){
-      txt+=`<div class="shift-timeline">`;
-      if(hasBreakSegs){
-        txt+=`<span style="color:#f0b429">☕ 休息：</span>`;
-        txt+=s.breakSegs.map(seg=>`<span class="seg br">${esc(seg.s)}–${esc(seg.e)}</span>`).join('');
-      }
-      if(hasWaitSegs){
-        txt+=`${hasBreakSegs?'<br>':''}<span style="color:#4cc9ec">⏳ 等單：</span>`;
-        txt+=s.waitSegs.map(seg=>`<span class="seg wt">${esc(seg.s)}–${esc(seg.e)}</span>`).join('');
-      }
-      txt+=`</div>`;
-    }
-    $('#calDayShift').innerHTML=txt;
-  }else{
-    $('#calDayShift').textContent='當天沒有班次紀錄';
-  }
+  
+  const pauseMeta = s ? `（休息 ${fmtDur(s.breakMin)}${s.waitMin ? ' / 等單 ' + fmtDur(s.waitMin) : ''}${s.km ? ' · ' + s.km + 'km' : ''}）` : '';
+  $('#calDayShift').textContent=s?`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'} ${pauseMeta}${s.note?`｜${s.note}`:''}`:'當天沒有班次紀錄';
   
   $('#calDayPays').innerHTML=pays.map(p=>`<div class="pay-smart">🟢 <b>${esc(plat(p.platform).name)}</b> 已經把 <b class="money" style="color:var(--ue)">${fmtM(p.amount)}</b> 轉到銀行了${p.note?`<span class="dim">｜${esc(p.note)}</span>`:''}
     <button class="icon-btn" data-payedit="${p.id}" style="margin-left:auto" title="編輯">✎</button></div>`).join('');
@@ -1978,7 +1932,7 @@ function renderAna(){
     ['活躍時薪',actH>0?fmtM(rev/actH):'—'],
     ['總單數',String(totOrd)],
     ['平均每單',totOrd?fmtM(rev/totOrd):'—']
-  ].map(([l,v])=>`<div class="wb-item"><div class="lab">${l} · ${label}</div><div class="val ${v.startsWith('$')?'money':''}" style="font-size:26px">${v}</div></div>`).join('');
+    ].map(([l,v])=>`<div class="wb-item"><div class="lab">${l} · ${label}</div><div class="val ana-val ${v.startsWith('$')?'money':''}">${v}</div></div>`).join('');
 
   const stats=db.platforms.map(p=>{const ds=dels.filter(d=>d.platform===p.id);
     const r=ds.reduce((a,d)=>a+num(d.pay)+num(d.tip),0),tp=ds.reduce((a,d)=>a+num(d.tip),0),
@@ -1992,7 +1946,7 @@ function renderAna(){
     <div class="card pcard" style="--c:${safeColor(s.p.color)}">
       <div class="top"><span class="pbadge" style="--c:${safeColor(s.p.color)}">${esc(s.p.name)}</span>
         ${best&&s.p.id===best.p.id&&s.hourly>0?'<span class="crown">👑 時薪王</span>':''}</div>
-      <div class="hourly">${s.hourly?'$'+s.hourly.toFixed(2):'—'}<small> /小時（依送單時數）</small></div>
+      <div class="hourly">${s.hourly?'$'+s.hourly.toFixed(2):'<span class="nohr">—</span>'}<small> /小時（依送單時數）</small></div>
       <div class="rows">
         <div><span>單數</span><span>${s.n}</span></div>
         <div><span>總收入</span><span>${fmtM(s.rev)}</span></div>
@@ -2283,6 +2237,72 @@ switchView('dash');
 if(fbCfg.auto&&fbCfg.docKey){
   fbConnect();
 }
+</script>
+<script>
+/* ═══════════ PWA 安裝 & Service Worker ═══════════ */
+(function(){
+  // 1. 註冊 Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => {
+          console.log('✅ SW 已註冊，scope:', reg.scope);
+          // 偵測更新
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                if (confirm('🔄 RUNLOG 有新版本！要立即更新嗎？')) {
+                  newWorker.postMessage('skipWaiting');
+                  location.reload();
+                }
+              }
+            });
+          });
+        })
+        .catch(err => console.warn('SW 註冊失敗:', err));
+    });
+  }
+
+  // 2. 安裝按鈕（Chrome/Edge/Android）
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installBtn) installBtn.style.display = 'inline-flex';
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        // iOS 或不支援的環境 → 顯示提示
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          alert('📱 iOS 安裝方式：\n1. 點 Safari 底部的「分享」圖示\n2. 選擇「加入主畫面」');
+        } else {
+          alert('此瀏覽器尚未準備好安裝，請稍後再試。');
+        }
+        return;
+      }
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+  }
+
+  // 3. 已安裝時隱藏按鈕
+  window.addEventListener('appinstalled', () => {
+    if (installBtn) installBtn.style.display = 'none';
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      console.log('🎉 App 已安裝！');
+    }
+  });
+})();
 </script>
 </body>
 </html>
