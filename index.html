@@ -386,6 +386,24 @@ select.inline{width:auto}
 .pcard .hourly .nohr{font-size:26px;color:var(--faint);font-family:var(--mono);letter-spacing:0}
 .pcard .rows span:last-child{letter-spacing:-.2px}
 .dz .money{letter-spacing:-.5px}
+
+/* UX refresh layer */
+:root{--glow:rgba(255,210,74,.18);--ease:cubic-bezier(.2,.8,.2,1)}
+body{overflow-x:hidden}
+.topbar{position:sticky;top:0;z-index:35;border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent);box-shadow:0 8px 28px rgba(0,0,0,.08)}
+.topbar:after{content:"";position:absolute;left:0;bottom:-1px;height:2px;width:var(--scroll,0%);background:linear-gradient(90deg,var(--teal),var(--sun));transition:width .12s ease}
+.card{position:relative;isolation:isolate;overflow:hidden}
+.card:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(360px 160px at var(--mx,50%) var(--my,0%),var(--glow),transparent 70%);transition:opacity .25s ease;z-index:-1}
+.card:hover:before{opacity:1}
+.btn,.nav-btn,.chip,.pill,.fchip,.cal-cell{will-change:transform}
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary:after{content:"";position:absolute;inset:-60% 55% auto -25%;height:180%;transform:rotate(25deg);background:#fff6;transition:transform .45s var(--ease)}
+.btn-primary:hover:after{transform:translateX(230%) rotate(25deg)}
+.page-head h1{ text-shadow:0 0 28px color-mix(in srgb,var(--sun) 18%,transparent)}
+.metric-pop{animation:metricPop .45s var(--ease)}
+@keyframes metricPop{0%{transform:scale(.96);opacity:.6}100%{transform:scale(1);opacity:1}}
+@media(max-width:820px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-105%);transition:transform .28s var(--ease);box-shadow:18px 0 40px #0006}.sidebar.open{transform:translateX(0)}.sidebar.open:after{content:"";position:fixed;left:236px;top:0;width:100vw;height:100vh;background:#0007;z-index:-1}.hamb{display:grid;place-items:center}.topbar{padding:10px 16px}.top-date{font-size:11px}main{padding:20px 16px 48px}.dash-hero,.grid-2{grid-template-columns:1fr}.live-clock{font-size:46px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
 </style>
 </head>
 <body>
@@ -1128,7 +1146,8 @@ $('#btnWait').onclick=()=>{
 $('#btnEnd').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
-  if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
+  if(l.breakStart){
+    l.breakMs+=now-l.breakStart;l.breakStart=null}
   if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
   const onMin=Math.round((now-l.startTs)/60000),
         brMin=Math.round(l.breakMs/60000),
@@ -1884,7 +1903,7 @@ function renderCalDay(){
       <span class="pbadge" style="--c:${safeColor(p.color)}">${esc(p.name)}</span>${x.orders>1?`<span class="chip" style="padding:1px 8px;font-size:10px">×${x.orders}</span>`:''}
       <span style="font-weight:600">${esc(x.store)||'<span class=faint>—</span>'}</span>
       <span class="dim mono" style="font-size:11.5px">${x.miles?x.miles+'km':''}${x.minutes?' · '+x.minutes+'m':''}</span>
-      <span class="money" style="margin-left:auto">${fmtM(num(x.pay)+num(x.tip))}</span>
+      <span class="money" style="margin-left:auto">${fmtM(num(x.pay)+num(d.tip))}</span>
       <button class="icon-btn" data-cedit="${x.id}" title="編輯">✎</button>
     </div>`}).join(''):'<div class="dim" style="padding:10px;text-align:center">這天沒有外送紀錄</div>';
 }
@@ -2254,8 +2273,22 @@ if(fbCfg.auto&&fbCfg.docKey){
 })();
 </script>
 
+<!-- ── UX 互動與動畫層（4.35 專屬特效） ── -->
 <script>
-/* ═══════════ PWA 安裝 & Service Worker ═══════════ */
+(()=>{
+ const root=document.documentElement;
+ const update=()=>{const h=document.documentElement.scrollHeight-innerHeight;root.style.setProperty('--scroll',(h>0?(scrollY/h*100):0)+'%')};
+ addEventListener('scroll',update,{passive:true}); update();
+ document.querySelectorAll('.card').forEach(c=>c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();c.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');c.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%')}));
+ const side=document.querySelector('.sidebar'), ham=document.querySelector('.hamb');
+ if(ham&&side){ham.addEventListener('click',()=>side.classList.toggle('open')); document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>side.classList.remove('open')))}
+ const observer=new MutationObserver(()=>document.querySelectorAll('.big,.live-clock,.tile .val,.pcard .hourly').forEach(el=>{if(!el.classList.contains('metric-pop')){el.classList.add('metric-pop');setTimeout(()=>el.classList.remove('metric-pop'),500)}}));
+ observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+})();
+</script>
+
+<!-- ── PWA 安裝與 Service Worker ── -->
+<script>
 (function(){
   // 1. 註冊 Service Worker 與平滑更新
   if ('serviceWorker' in navigator) {
