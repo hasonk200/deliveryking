@@ -2367,7 +2367,7 @@ if(fbCfg.auto&&fbCfg.docKey){
     card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
   }, { passive: true });
 
-  // 3. 移動端側邊欄統一處理（避免重複綁定與誤擋點擊）
+  // 3. 移動端側邊欄統一處理
   const side = document.querySelector('#sidebar');
   const ham = document.querySelector('#hamb');
 
@@ -2377,12 +2377,12 @@ if(fbCfg.auto&&fbCfg.docKey){
   };
 
   if (ham && side) {
-    ham.onclick = (e) => {
+    ham.addEventListener('click', (e) => {
       e.stopPropagation();
       const willOpen = !side.classList.contains('open');
       side.classList.toggle('open', willOpen);
       document.body.classList.toggle('side-open', willOpen);
-    };
+    });
 
     document.querySelectorAll('.nav-btn').forEach(b => {
       b.addEventListener('click', closeMobileSidebar);
@@ -2391,15 +2391,16 @@ if(fbCfg.auto&&fbCfg.docKey){
     const handleOutsideClose = (e) => {
       const isOpen = side.classList.contains('open') || document.body.classList.contains('side-open');
       if (!isOpen) return;
+      // 點在漢堡鈕或側邊欄內部不關閉
       if (ham.contains(e.target) || side.contains(e.target)) return;
       
-      // 點在側邊欄以外時：關閉選單並阻止誤點底下的按鈕
-      e.preventDefault();
       closeMobileSidebar();
     };
 
     document.addEventListener('click', handleOutsideClose);
-    document.addEventListener('touchend', handleOutsideClose, { passive: false });
+    document.addEventListener('touchend', handleOutsideClose);
+  }
+})();
 </script>
 
 <!-- ═══════════ PWA 安裝 & Service Worker 生命週期 ═══════════ -->
