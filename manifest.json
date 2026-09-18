@@ -1,0 +1,41 @@
+{
+  "name": "RUNLOG｜多平台外送日誌",
+  "short_name": "RUNLOG",
+  "description": "記錄多平台外送收入、班次與成就",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1418",
+  "theme_color": "#0f1418",
+  "categories": ["productivity", "finance"],
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%23ffd24a'/><text x='256' y='340' font-size='280' text-anchor='middle'>🛵</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%23ffd24a'/><text x='256' y='340' font-size='280' text-anchor='middle'>🛵</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "快速記一單",
+      "short_name": "記一單",
+      "url": "./?action=quickadd",
+      "icons": [{"src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='20' fill='%2317d17c'/><text x='48' y='64' font-size='48' text-anchor='middle'>＋</text></svg>", "sizes": "96x96"}]
+    },
+    {
+      "name": "開始跑單",
+      "short_name": "跑單",
+      "url": "./?action=start",
+      "icons": [{"src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='20' fill='%23ff5a3c'/><text x='48' y='64' font-size='48' text-anchor='middle'>▶</text></svg>", "sizes": "96x96"}]
+    }
+  ]
+}
