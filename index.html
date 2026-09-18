@@ -1,5 +1,21 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+<!--
+  ══════════════════════════════════════════════════════════════════
+  RUNLOG 外送日誌 - 版本: v4.6 (PWA + Timeline Edition)
+  
+  【本版本核心更新亮點】
+  1. # 等單/休息詳細時間段記錄 version：
+     - 上線跑單時，每次切換「☕ 休息一下」或「⏳ 等單中」皆會精確記錄實際起訖時間（如 14:30–15:15）。
+     - 點擊日曆當日詳情，會自動以彩色標籤 (.shift-timeline) 視覺化列出所有休息與等單時段。
+  2. PWA 完整生態支援：
+     - 支援 manifest.json、Service Worker 離線快取與 controllerchange 無感平滑更新。
+     - 支援桌面捷徑直達（?action=quickadd 快記、?action=start 開始跑單）。
+     - 支援 Android 安裝提示與 iOS Safari「加入主畫面」教學導引按鈕。
+  3. UX Refresh 特效繼承（基於 v4.35）：
+     - 卡片游標聚光燈反射 (--mx, --my)、頂部滾動進度條 (--scroll)、數字跳動彈跳動畫。
+  ══════════════════════════════════════════════════════════════════
+-->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -387,7 +403,7 @@ select.inline{width:auto}
 .pcard .rows span:last-child{letter-spacing:-.2px}
 .dz .money{letter-spacing:-.5px}
 
-/* UX refresh layer */
+/* UX refresh layer (4.35 專屬) */
 :root{--glow:rgba(255,210,74,.18);--ease:cubic-bezier(.2,.8,.2,1)}
 body{overflow-x:hidden}
 .topbar{position:sticky;top:0;z-index:35;border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent);box-shadow:0 8px 28px rgba(0,0,0,.08)}
@@ -404,6 +420,14 @@ body{overflow-x:hidden}
 @keyframes metricPop{0%{transform:scale(.96);opacity:.6}100%{transform:scale(1);opacity:1}}
 @media(max-width:820px){.sidebar{position:fixed;left:0;top:0;transform:translateX(-105%);transition:transform .28s var(--ease);box-shadow:18px 0 40px #0006}.sidebar.open{transform:translateX(0)}.sidebar.open:after{content:"";position:fixed;left:236px;top:0;width:100vw;height:100vh;background:#0007;z-index:-1}.hamb{display:grid;place-items:center}.topbar{padding:10px 16px}.top-date{font-size:11px}main{padding:20px 16px 48px}.dash-hero,.grid-2{grid-template-columns:1fr}.live-clock{font-size:46px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
+
+/* 班次詳情時間段樣式 (Timeline) */
+.shift-timeline{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.5}
+.shift-timeline .seg{display:inline-block;padding:2px 7px;margin:2px 4px 2px 0;background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:5px;font-family:var(--mono);font-size:11px}
+:root[data-theme="light"] .shift-timeline .seg{background:#0000000a}
+.shift-timeline .seg.br{color:#f0b429;border-color:rgba(240,180,41,.35)}
+.shift-timeline .seg.wt{color:#4cc9ec;border-color:rgba(76,201,236,.35)}
+.shift-timeline .seg.on{color:var(--ue)}
 </style>
 </head>
 <body>
@@ -1061,14 +1085,20 @@ function liveParts(){
 }
 function streak(){let n=0;const d=new Date();const has=k=>db.deliveries.some(x=>x.date===k)||db.shifts.some(s=>s.date===k);
   if(!has(dk(d)))d.setDate(d.getDate()-1);while(has(dk(d))&&n<3650){n++;d.setDate(d.getDate()-1)}return n}
-function addShiftSeg(date,s,e,onMin,brMin,wtMin=0){
+
+/* # 等單/休息詳細時間段記錄 version (支援區間紀錄) */
+function addShiftSeg(date,s,e,onMin,brMin,wtMin=0,breakSegs=[],waitSegs=[]){
   let r=shiftRec(date);
-  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0};db.shifts.push(r)}
+  if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0,breakSegs:[],waitSegs:[]};db.shifts.push(r)}
   if(!r.segs)r.segs=[];
+  if(!r.breakSegs)r.breakSegs=[];
+  if(!r.waitSegs)r.waitSegs=[];
   r.segs.push({s,e});
   r.onlineMin=num(r.onlineMin)+onMin;
   r.breakMin=num(r.breakMin)+brMin;
   r.waitMin=num(r.waitMin)+wtMin;
+  if(breakSegs&&breakSegs.length)r.breakSegs.push(...breakSegs);
+  if(waitSegs&&waitSegs.length)r.waitSegs.push(...waitSegs);
   save();return r;
 }
 
@@ -1108,21 +1138,29 @@ function renderCurrent(){
   tick();
 }
 
-/* ═══════════════ 班次計時（含等單狀態）═══════════════ */
+/* ═══════════════ 班次計時（含等單與詳細時間段收集）═══════════════ */
 $('#btnStart').onclick=()=>{
   if(db.live)return;
-  db.live={startTs:Date.now(),breakMs:0,breakStart:null,waitMs:0,waitStart:null};
+  db.live={startTs:Date.now(),breakMs:0,breakStart:null,waitMs:0,waitStart:null,breakSegs:[],waitSegs:[]};
   save();toast('上線！開始接單吧 🛵','ok');syncShiftUI();renderCurrent();
 };
 
 $('#btnBreak').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
+  if(!l.breakSegs)l.breakSegs=[];
+  if(!l.waitSegs)l.waitSegs=[];
   if(l.breakStart){
-    l.breakMs+=now-l.breakStart;l.breakStart=null;
+    l.breakMs+=now-l.breakStart;
+    l.breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
+    l.breakStart=null;
     toast('繼續跑單 💨','ok');
   }else{
-    if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
+    if(l.waitStart){
+      l.waitMs+=now-l.waitStart;
+      l.waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
+      l.waitStart=null;
+    }
     l.breakStart=now;
     toast('休息中，時間照算但不計活躍 ☕');
   }
@@ -1132,11 +1170,19 @@ $('#btnBreak').onclick=()=>{
 $('#btnWait').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
+  if(!l.breakSegs)l.breakSegs=[];
+  if(!l.waitSegs)l.waitSegs=[];
   if(l.waitStart){
-    l.waitMs+=now-l.waitStart;l.waitStart=null;
+    l.waitMs+=now-l.waitStart;
+    l.waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
+    l.waitStart=null;
     toast('繼續跑單 💨','ok');
   }else{
-    if(l.breakStart){l.breakMs+=now-l.breakStart;l.breakStart=null}
+    if(l.breakStart){
+      l.breakMs+=now-l.breakStart;
+      l.breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
+      l.breakStart=null;
+    }
     l.waitStart=now;
     toast('等單中，時間照算但不計活躍 ⏳');
   }
@@ -1146,13 +1192,21 @@ $('#btnWait').onclick=()=>{
 $('#btnEnd').onclick=()=>{
   const l=db.live;if(!l)return;
   const now=Date.now();
+  const breakSegs=[...(l.breakSegs||[])], waitSegs=[...(l.waitSegs||[])];
   if(l.breakStart){
-    l.breakMs+=now-l.breakStart;l.breakStart=null}
-  if(l.waitStart){l.waitMs+=now-l.waitStart;l.waitStart=null}
+    l.breakMs+=now-l.breakStart;
+    breakSegs.push({s:fmtTime(l.breakStart),e:fmtTime(now)});
+    l.breakStart=null;
+  }
+  if(l.waitStart){
+    l.waitMs+=now-l.waitStart;
+    waitSegs.push({s:fmtTime(l.waitStart),e:fmtTime(now)});
+    l.waitStart=null;
+  }
   const onMin=Math.round((now-l.startTs)/60000),
         brMin=Math.round(l.breakMs/60000),
         wtMin=Math.round(l.waitMs/60000);
-  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(now),onMin,brMin,wtMin);
+  addShiftSeg(dk(new Date(l.startTs)),fmtTime(l.startTs),fmtTime(now),onMin,brMin,wtMin,breakSegs,waitSegs);
   db.live=null;save();
   toast(`收工！上線 ${fmtDur(onMin)}、活躍 ${fmtDur(onMin-brMin-wtMin)} 🏁`,'ok');
   syncShiftUI();renderAll();
@@ -1736,6 +1790,8 @@ $('#smSave').onclick=()=>{
       exist.km=num(exist.km)+km;
       if(note)exist.note=(exist.note?exist.note+' / ':'')+note;
       if(s.segs)exist.segs=[...(exist.segs||[]),...(s.segs||[])];
+      if(s.breakSegs)exist.breakSegs=[...(exist.breakSegs||[]),...(s.breakSegs||[])];
+      if(s.waitSegs)exist.waitSegs=[...(exist.waitSegs||[]),...(s.waitSegs||[])];
       db.shifts=db.shifts.filter(x=>x.id!==s.id);
     } else {
       s.date=newDate;
@@ -1893,7 +1949,27 @@ function renderCalDay(){
     <span class="chip">⚡ 活躍$ <b class="money">${dayAcH>0.01?fmtM(inc/dayAcH):'—'}</b></span>`;
   
   const pauseMeta = s ? `（休息 ${fmtDur(s.breakMin)}${s.waitMin ? ' / 等單 ' + fmtDur(s.waitMin) : ''}${s.km ? ' · ' + s.km + 'km' : ''}）` : '';
-  $('#calDayShift').textContent=s?`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'} ${pauseMeta}${s.note?`｜${s.note}`:''}`:'當天沒有班次紀錄';
+  
+  if(s){
+    let txt=`班次時段：${s.segs&&s.segs.length?s.segs.map(g=>g.e?g.s+'–'+g.e:g.s).join('、'):'紀錄'} ${pauseMeta}${s.note?`｜${s.note}`:''}`;
+    const hasBreakSegs=s.breakSegs&&s.breakSegs.length;
+    const hasWaitSegs=s.waitSegs&&s.waitSegs.length;
+    if(hasBreakSegs||hasWaitSegs){
+      txt+=`<div class="shift-timeline">`;
+      if(hasBreakSegs){
+        txt+=`<span style="color:#f0b429;font-weight:600">☕ 休息：</span>`;
+        txt+=s.breakSegs.map(seg=>`<span class="seg br">${seg.s}–${seg.e}</span>`).join('');
+      }
+      if(hasWaitSegs){
+        txt+=`${hasBreakSegs?'&nbsp;&nbsp;':''}<span style="color:#4cc9ec;font-weight:600">⏳ 等單：</span>`;
+        txt+=s.waitSegs.map(seg=>`<span class="seg wt">${seg.s}–${seg.e}</span>`).join('');
+      }
+      txt+=`</div>`;
+    }
+    $('#calDayShift').innerHTML=txt;
+  } else {
+    $('#calDayShift').textContent='當天沒有班次紀錄';
+  }
   
   $('#calDayPays').innerHTML=pays.map(p=>`<div class="pay-smart">🟢 <b>${esc(plat(p.platform).name)}</b> 已經把 <b class="money" style="color:var(--ue)">${fmtM(p.amount)}</b> 轉到銀行了${p.note?`<span class="dim">｜${esc(p.note)}</span>`:''}
     <button class="icon-btn" data-payedit="${p.id}" style="margin-left:auto" title="編輯">✎</button></div>`).join('');
@@ -1903,7 +1979,7 @@ function renderCalDay(){
       <span class="pbadge" style="--c:${safeColor(p.color)}">${esc(p.name)}</span>${x.orders>1?`<span class="chip" style="padding:1px 8px;font-size:10px">×${x.orders}</span>`:''}
       <span style="font-weight:600">${esc(x.store)||'<span class=faint>—</span>'}</span>
       <span class="dim mono" style="font-size:11.5px">${x.miles?x.miles+'km':''}${x.minutes?' · '+x.minutes+'m':''}</span>
-      <span class="money" style="margin-left:auto">${fmtM(num(x.pay)+num(d.tip))}</span>
+      <span class="money" style="margin-left:auto">${fmtM(num(x.pay)+num(x.tip))}</span>
       <button class="icon-btn" data-cedit="${x.id}" title="編輯">✎</button>
     </div>`}).join(''):'<div class="dim" style="padding:10px;text-align:center">這天沒有外送紀錄</div>';
 }
@@ -2208,7 +2284,7 @@ $('#dSave').onclick=()=>{
   
   if(onMin||brMin||wtMin||km||note){
     let r=shiftRec(date);
-    if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0};db.shifts.push(r)}
+    if(!r){r={id:uid(),date,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0,breakSegs:[],waitSegs:[]};db.shifts.push(r)}
     r.onlineMin=num(r.onlineMin)+onMin;
     r.breakMin=num(r.breakMin)+brMin;
     r.waitMin=num(r.waitMin)+wtMin;
@@ -2257,7 +2333,7 @@ if(fbCfg.auto&&fbCfg.docKey){
   fbConnect();
 }
 
-// 處理 PWA 桌面捷徑（Shortcuts）
+/* ═══════════ PWA 桌面捷徑（Shortcuts）動作解析 ═══════════ */
 (function handleShortcuts() {
   const urlParams = new URLSearchParams(window.location.search);
   const act = urlParams.get('action');
@@ -2273,7 +2349,7 @@ if(fbCfg.auto&&fbCfg.docKey){
 })();
 </script>
 
-<!-- ── UX 互動與動畫層（4.35 專屬特效） ── -->
+<!-- ═══════════ UX 互動與動畫層（4.35 專屬動態） ═══════════ -->
 <script>
 (()=>{
  const root=document.documentElement;
@@ -2287,10 +2363,10 @@ if(fbCfg.auto&&fbCfg.docKey){
 })();
 </script>
 
-<!-- ── PWA 安裝與 Service Worker ── -->
+<!-- ═══════════ PWA 安裝 & Service Worker 生命週期 ═══════════ -->
 <script>
 (function(){
-  // 1. 註冊 Service Worker 與平滑更新
+  // 1. 註冊 Service Worker 與平滑無感更新
   if ('serviceWorker' in navigator) {
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -2320,13 +2396,13 @@ if(fbCfg.auto&&fbCfg.docKey){
     });
   }
 
-  // 2. 安裝按鈕（Android / Chrome / iOS 引導）
+  // 2. 安裝按鈕（支援 Chrome/Android 原生安裝 及 iOS Safari 教學提示）
   let deferredPrompt = null;
   const installBtn = document.getElementById('installBtn');
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 
-  // iOS Safari 不支援 beforeinstallprompt，未安裝時主動顯示教學按鈕
+  // iOS 且尚未加入主畫面時顯示安裝教學按鈕
   if (isIOS && !isStandalone && installBtn) {
     installBtn.style.display = 'inline-flex';
   }
