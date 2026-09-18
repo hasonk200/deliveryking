@@ -454,6 +454,7 @@ select.inline{width:auto}
       <div class="pill"><span class="dot" id="topDot"></span><span id="topPillTxt">離線</span><span class="mono" id="topPillTime"></span></div>
       <button class="pill" id="fbPill" title="Firebase 同步狀態">☁ 未連線</button>
       <button class="pill" id="themeBtn" title="切換日光／夜間模式">🌙</button>
+      <button class="pill" id="installBtn" style="display:none;cursor:pointer" title="安裝到桌面">📱 安裝 App</button>
       <button class="btn btn-ghost btn-sm" id="btnDayEntry">📅 當日快記</button>
       <button class="btn btn-primary btn-sm" id="btnQuickAdd">＋ 記一單</button>
     </div>
@@ -1681,7 +1682,6 @@ $('#fSave').onclick=()=>{const date=$('#fDate').value||todayKey();
   save();$('#dlModal').classList.remove('open');editId=null;renderAll();toast('已記錄一單 💰','ok')};
 $('#fCancel').onclick=()=>{$('#dlModal').classList.remove('open');editId=null};
 $('#btnAddDl').onclick=()=>openDlModal(null);
-<button class="pill" id="installBtn" style="display:none;cursor:pointer" title="安裝到桌面">📱 安裝 App</button>
 $('#btnQuickAdd').onclick=()=>openDlModal(null);
 $('#btnFirst').addEventListener('click',()=>openDlModal(null));
 
@@ -1944,7 +1944,7 @@ function renderAna(){
   const maxRev=Math.max(...stats.map(s=>s.rev),1);
   $('#platCards').innerHTML=stats.map(s=>`
     <div class="card pcard" style="--c:${safeColor(s.p.color)}">
-      <div class="top"><span class="pbadge" style="--c:${safeColor(s.p.color)}">${esc(s.p.name)}</span>
+      <div class="top"><span class="pbadge" style="--c:${safeColor(p.color)}">${esc(s.p.name)}</span>
         ${best&&s.p.id===best.p.id&&s.hourly>0?'<span class="crown">👑 時薪王</span>':''}</div>
       <div class="hourly">${s.hourly?'$'+s.hourly.toFixed(2):'<span class="nohr">—</span>'}<small> /小時（依送單時數）</small></div>
       <div class="rows">
@@ -2237,24 +2237,47 @@ switchView('dash');
 if(fbCfg.auto&&fbCfg.docKey){
   fbConnect();
 }
+
+// 處理 PWA 桌面捷徑（Shortcuts）
+(function handleShortcuts() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const act = urlParams.get('action');
+  if (act === 'quickadd') {
+    setTimeout(() => openDlModal(null), 150);
+    history.replaceState({}, document.title, window.location.pathname);
+  } else if (act === 'start') {
+    if (!db.live) {
+      setTimeout(() => $('#btnStart').click(), 150);
+    }
+    history.replaceState({}, document.title, window.location.pathname);
+  }
+})();
 </script>
+
 <script>
 /* ═══════════ PWA 安裝 & Service Worker ═══════════ */
 (function(){
-  // 1. 註冊 Service Worker
+  // 1. 註冊 Service Worker 與平滑更新
   if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
         .then(reg => {
           console.log('✅ SW 已註冊，scope:', reg.scope);
-          // 偵測更新
           reg.addEventListener('updatefound', () => {
             const newWorker = reg.installing;
+            if (!newWorker) return;
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 if (confirm('🔄 RUNLOG 有新版本！要立即更新嗎？')) {
                   newWorker.postMessage('skipWaiting');
-                  location.reload();
                 }
               }
             });
@@ -2264,9 +2287,16 @@ if(fbCfg.auto&&fbCfg.docKey){
     });
   }
 
-  // 2. 安裝按鈕（Chrome/Edge/Android）
+  // 2. 安裝按鈕（Android / Chrome / iOS 引導）
   let deferredPrompt = null;
   const installBtn = document.getElementById('installBtn');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+
+  // iOS Safari 不支援 beforeinstallprompt，未安裝時主動顯示教學按鈕
+  if (isIOS && !isStandalone && installBtn) {
+    installBtn.style.display = 'inline-flex';
+  }
 
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
@@ -2276,14 +2306,12 @@ if(fbCfg.auto&&fbCfg.docKey){
 
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
+      if (isIOS) {
+        alert('📱 iOS 安裝方式：\n1. 點擊 Safari 底部的「分享」圖示 (⎋)\n2. 往下捲動並選擇「加入主畫面」');
+        return;
+      }
       if (!deferredPrompt) {
-        // iOS 或不支援的環境 → 顯示提示
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS) {
-          alert('📱 iOS 安裝方式：\n1. 點 Safari 底部的「分享」圖示\n2. 選擇「加入主畫面」');
-        } else {
-          alert('此瀏覽器尚未準備好安裝，請稍後再試。');
-        }
+        alert('此瀏覽器尚未準備好安裝，或您已經安裝此 App。');
         return;
       }
       deferredPrompt.prompt();
@@ -2298,9 +2326,7 @@ if(fbCfg.auto&&fbCfg.docKey){
   // 3. 已安裝時隱藏按鈕
   window.addEventListener('appinstalled', () => {
     if (installBtn) installBtn.style.display = 'none';
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      console.log('🎉 App 已安裝！');
-    }
+    console.log('🎉 RUNLOG 已成功安裝！');
   });
 })();
 </script>
