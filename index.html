@@ -2,14 +2,13 @@
 <html lang="zh-Hant">
 <!--
   ══════════════════════════════════════════════════════════════════
-  RUNLOG 外送日誌 - 版本: v4.7.1 (Polished UX & Timeline PWA Edition)
+  RUNLOG 外送日誌 - 版本: v4.6.1 (Polished UX & Timeline PWA Edition)
   
   【本版本核心更新】
   1. 視覺優化：修復 MutationObserver 導致每秒數字抽搐跳動問題，大幅省電與提升滑順度。
   2. 聚光燈優化：卡片 hover 反光改為全域事件委派，支援動態載入的平台卡片。
   3. 選單邏輯統一：移除重複綁定的漢堡選單事件，手機版開關與點擊外部關閉極致流暢。
   4. 完整功能保留：等單/休息時間段記錄 (Timeline)、完整 PWA 離線與安裝、桌面捷徑。
-  5. edited by astra
   ══════════════════════════════════════════════════════════════════
 -->
 <head>
@@ -506,6 +505,14 @@ body{overflow-x:hidden}
 @keyframes shopSteam{0%{opacity:0;transform:translateY(3px)}40%{opacity:.7}100%{opacity:0;transform:translateY(-5px)}}
 @media(prefers-reduced-motion:reduce){.city-strip .shop-parallax,.city-strip .shop-steam{animation:none!important}}
 
+
+/* Delivery story: stationary shops, moving courier, coordinated stops. */
+.city-strip{height:250px;background:linear-gradient(135deg,#172e40,#35505a 60%,#94725f)}
+.city-strip .shop-parallax,.city-strip .scene-road,.city-strip .passing-trees,.city-strip .cycle-wheel,.city-strip .pedal-front,.city-strip .pedal-back{animation:none!important}
+.city-strip .scene-copy{top:18px;left:25px}
+.scene-copy strong{font-size:23px}.scene-copy p{display:none}
+:root[data-theme="light"] .city-strip{background:linear-gradient(135deg,#c7e3ef,#deeee9 60%,#fae0bd)}
+@media(max-width:700px){.city-strip{height:205px}.city-strip .scene-copy{top:12px;left:15px}.scene-copy strong{font-size:18px}.scene-copy .scene-eyebrow{font-size:7px;margin-bottom:3px}}
 </style>
 </head>
 <body>
@@ -659,7 +666,7 @@ body{overflow-x:hidden}
 <g fill="#203b49"><path d="M873 176l4-115h5l5 115z"/><ellipse cx="880" cy="69" rx="15" ry="5"/><rect x="878.5" y="24" width="3" height="39"/><ellipse cx="880" cy="62" rx="10" ry="3"/></g>
 <path d="M0 180Q200 158 380 180T750 173T1200 178V205H0Z" fill="#192f3b"/>
 <!-- Restaurant street: decorative SVG only. -->
-<g class="shop-parallax"><g id="restaurant-street"><g transform="translate(65 112)">
+<g class="shop-parallax"><g id="restaurant-street"><g transform="translate(48 130) scale(.8)">
 <rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
 <rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
 <rect x="0" y="0" width="220" height="27" rx="3" fill="#ae273a"/><text x="110" y="19" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-weight="bold" font-size="18" fill="#fff4de">Tim Hortons</text>
@@ -672,7 +679,7 @@ body{overflow-x:hidden}
 <rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
 <path d="M4 28H216L220 35H0Z" fill="#ae273a"/><path d="M5 29H215" stroke="#fff4de" stroke-width="1.5" opacity=".5"/>
 <rect x="54" y="49" width="14" height="17" rx="2" fill="#b4323e"/><path d="M53 49H69M56 56H66" stroke="#fff0d8" stroke-width="2"/><path class="shop-steam" d="M58 45q-3-4 0-7t0-7M65 44q-3-4 0-7" stroke="#ffe4c6" stroke-width="1.5" fill="none"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
-</g><g transform="translate(350 112)">
+</g><g transform="translate(278 130) scale(.8)">
 <rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
 <rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
 <rect x="0" y="0" width="220" height="27" rx="3" fill="#a5282e"/><text x="126" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" letter-spacing="0" fill="#ffd05e">McDonald’s</text><path d="M17 21C17 1 28 1 29 20C30 1 41 1 41 21" fill="none" stroke="#ffd05e" stroke-width="3.8"/>
@@ -685,7 +692,7 @@ body{overflow-x:hidden}
 <rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
 <path d="M4 28H216L220 35H0Z" fill="#a5282e"/><path d="M5 29H215" stroke="#ffd05e" stroke-width="1.5" opacity=".5"/>
 <path d="M52 54q10-12 20 0Z" fill="#e6af65"/><path d="M52 58H72" stroke="#79a65e" stroke-width="3"/><path d="M52 61H72" stroke="#753f2a" stroke-width="4"/><path d="M52 65H72" stroke="#e6af65" stroke-width="4"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
-</g><g transform="translate(650 112)">
+</g><g transform="translate(508 130) scale(.8)">
 <rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
 <rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
 <rect x="0" y="0" width="220" height="27" rx="3" fill="#aa302e"/><text x="110" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="13" letter-spacing="0" fill="#fff5d6">LAZEEZ SHAWARMA</text>
@@ -698,7 +705,7 @@ body{overflow-x:hidden}
 <rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
 <path d="M4 28H216L220 35H0Z" fill="#aa302e"/><path d="M5 29H215" stroke="#fff5d6" stroke-width="1.5" opacity=".5"/>
 <path d="M61 41V69" stroke="#cad2d2" stroke-width="2"/><path class="shop-spit" d="M51 45H71L66 65H56Z" fill="#d09a57"/><path d="M55 49H67M56 54H65M58 59H64" stroke="#986134" stroke-width="2"/><path d="M48 69H74" stroke="#92a2a4" stroke-width="2"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
-</g><g transform="translate(950 112)">
+</g><g transform="translate(738 130) scale(.8)">
 <rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
 <rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
 <rect x="0" y="0" width="220" height="27" rx="3" fill="#ef8d36"/><text x="110" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" letter-spacing="0.6" fill="#fff9e7">POPEYES</text>
@@ -711,25 +718,46 @@ body{overflow-x:hidden}
 <rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
 <path d="M4 28H216L220 35H0Z" fill="#ef8d36"/><path d="M5 29H215" stroke="#fff9e7" stroke-width="1.5" opacity=".5"/>
 <path d="M53 49H74L70 68H57Z" fill="#f3eee0"/><path d="M54 54H73L72 60H55Z" fill="#ef8d36"/><path d="M55 47q0-7 6-4q2-8 7-2q7-3 6 7" fill="#d6a05a"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
-</g></g><use href="#restaurant-street" x="1200"/></g>
+</g></g></g>
 <path d="M0 197H1200V240H0Z" fill="url(#motion-road)"/><path d="M0 197H1200" stroke="#648082" stroke-width="2" opacity=".4"/>
 <path class="scene-road" d="M-100 228H1300" stroke="#d3b579" stroke-width="2" stroke-dasharray="36 52" opacity=".45"/>
 <g class="passing-trees" opacity=".75"><path d="M60 194v-40M97 194v-31" stroke="#192c35" stroke-width="5"/><ellipse cx="60" cy="150" rx="18" ry="24" fill="#304b4b"/><ellipse cx="97" cy="162" rx="12" ry="18" fill="#3b5552"/></g>
-<g transform="translate(690 203)"><g class="courier-float"><ellipse cx="0" cy="10" rx="73" ry="5" fill="#09161d" opacity=".35"/>
-<g class="courier-bob"><path d="M58-24L159-46V-5Z" fill="url(#motion-light)"/>
+<g transform="translate(1050 119)">
+<rect x="-9" y="-4" width="133" height="80" rx="5" fill="#263d48" stroke="#6c8589" stroke-opacity=".45"/>
+<rect x="0" y="0" width="115" height="6" rx="3" fill="#d8bc89"/>
+<rect x="16" y="15" width="34" height="28" rx="2" fill="#edc389" opacity=".6"/><path d="M33 15V43M16 29H50" stroke="#385460" stroke-width="2"/>
+<rect x="68" y="17" width="34" height="59" rx="3" fill="#122b38"/><rect x="72" y="21" width="26" height="18" fill="#668b90" opacity=".4"/><circle cx="94" cy="53" r="1.8" fill="#e8c88b"/>
+<text x="84" y="12" text-anchor="middle" font-size="6" letter-spacing="1" fill="#d8c79f" font-family="Arial">HOME</text>
+</g>
+<g transform="translate(1090 207)">
+<ellipse cx="0" cy="6" rx="20" ry="3" fill="#0b202b" opacity=".4"/>
+<path d="M-6-29L-9 3M7-29L11 3" stroke="#324553" stroke-width="7" stroke-linecap="round"/>
+<path d="M-13 4H-5M8 4H17" stroke="#dce1d9" stroke-width="4" stroke-linecap="round"/>
+<path d="M0-51L0-27" stroke="#81b4aa" stroke-width="20" stroke-linecap="round"/>
+<path id="journey-customer-arm" d="M-7-49L-12-33L-11-22" fill="none" stroke="#b9cfb4" stroke-width="5" stroke-linecap="round"/>
+<path d="M9-48L13-32L10-25" fill="none" stroke="#81b4aa" stroke-width="5" stroke-linecap="round"/>
+<circle cx="0" cy="-64" r="9" fill="#dbaf8b"/><path d="M-9-65Q-10-77 1-76Q12-75 9-64L4-69L-5-68Z" fill="#273847"/>
+<circle cx="-4" cy="-64" r=".9" fill="#253a46"/><path d="M-5-59q3 2 5 0" fill="none" stroke="#935e4a" stroke-width="1"/>
+</g>
+<g id="journey-thanks" opacity="0" transform="translate(1084 110)"><rect x="-38" y="-19" width="76" height="26" rx="13" fill="#e4f4e9"/><path d="M-3 5l6 9 4-9" fill="#e4f4e9"/><text text-anchor="middle" y="-2" font-family="Arial,sans-serif" font-size="10" fill="#2a6355">謝謝！ ✓</text></g>
+<g id="journey-rider" transform="translate(-80 207)"><g transform="scale(.64)"><ellipse cx="0" cy="10" rx="73" ry="5" fill="#09161d" opacity=".35"/>
+<g id="journey-body"><path d="M58-24L159-46V-5Z" fill="url(#motion-light)"/>
 <g transform="translate(-43 -10)"><g class="cycle-wheel"><circle r="23" fill="#132731" stroke="#92afb6" stroke-width="3"/><circle r="18" fill="none" stroke="#385661"/><path d="M-18 0H18M0-18V18M-13-13L13 13M13-13L-13 13" stroke="#70939d" stroke-width="1.2"/></g></g>
 <g transform="translate(47 -10)"><g class="cycle-wheel"><circle r="23" fill="#132731" stroke="#92afb6" stroke-width="3"/><circle r="18" fill="none" stroke="#385661"/><path d="M-18 0H18M0-18V18M-13-13L13 13M13-13L-13 13" stroke="#70939d" stroke-width="1.2"/></g></g>
-<path class="pedal-back" d="M-16-54L8-44L-7-13" fill="none" stroke="#253c4b" stroke-width="9" stroke-linecap="round"/>
+<path id="journey-leg-back" class="pedal-back" d="M-16-54L8-44L-7-13" fill="none" stroke="#253c4b" stroke-width="9" stroke-linecap="round"/>
 <path d="M-43-10L-23-47L25-47L-1-10Z M-23-47L-1-10M25-47L47-10M-23-47L-28-57M25-47L31-63H40" fill="none" stroke="#68c4c9" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M-36-57H-19" stroke="#14242e" stroke-width="5" stroke-linecap="round"/><rect x="-5" y="-40" width="21" height="10" rx="3" fill="#294d59"/>
 <circle cx="-1" cy="-10" r="6" fill="#e3b66d"/>
-<path class="pedal-front" d="M-17-56L-3-37L12-18" fill="none" stroke="#496074" stroke-width="9" stroke-linecap="round"/><path class="pedal-front" d="M9-17H20" stroke="#d9e1d8" stroke-width="5" stroke-linecap="round"/>
+<path id="journey-leg-front" class="pedal-front" d="M-17-56L-3-37L12-18" fill="none" stroke="#496074" stroke-width="9" stroke-linecap="round"/><path id="journey-shoe" class="pedal-front" d="M9-17H20" stroke="#d9e1d8" stroke-width="5" stroke-linecap="round"/>
 <path d="M-18-58L-4-91" stroke="#efb953" stroke-width="18" stroke-linecap="round"/>
-<path d="M-2-86L16-66L33-62" fill="none" stroke="#f4c66b" stroke-width="7" stroke-linecap="round"/>
+<path id="journey-arm" d="M-2-86L16-66L33-62" fill="none" stroke="#f4c66b" stroke-width="7" stroke-linecap="round"/>
 <rect x="-54" y="-92" width="29" height="32" rx="5" fill="#e6a947"/><path d="M-48-84H-32M-40-87V-68" stroke="#ffe0a0" stroke-width="2"/><path d="M-26-89L-13-79" stroke="#263c47" stroke-width="3"/>
 <circle cx="3" cy="-107" r="10" fill="#dbac85"/><path d="M-8-110Q-6-125 6-121Q16-120 16-109Z" fill="#d5e8e6"/><path d="M8-109L16-108" stroke="#203743" stroke-width="3"/><path d="M-6-105L0-97L8-101" fill="none" stroke="#355260" stroke-width="1.5"/>
 <circle cx="43" cy="-47" r="3" fill="#ffe9ae"/>
-</g></g></g></svg></div>
+</g></g></g>
+<g id="journey-bag" opacity="0"><path d="M-7 0h14l1 17H-8Z" fill="#edc287" stroke="#bb884a" stroke-width=".8"/><path d="M-3 1v-3q3-5 6 0v3" fill="none" stroke="#ad7842" stroke-width="1.3"/><path d="M-3 8l3 3 5-5" fill="none" stroke="#9d6835" stroke-width="1.4"/></g>
+<g id="journey-label"><rect x="-39" y="-19" width="78" height="22" rx="11" fill="#132e3d" stroke="#a7c9c5" stroke-opacity=".3"/><text id="journey-status" text-anchor="middle" y="-4" font-size="10" font-family="Arial,sans-serif" fill="#e8eadb">出發取餐</text></g>
+</svg></div>
 
   <main>
     <!-- ── 總覽 ── -->
@@ -2793,6 +2821,56 @@ if(fbCfg.auto&&fbCfg.docKey){
     if (installBtn) installBtn.style.display = 'none';
     console.log('🎉 RUNLOG 已成功安裝！');
   });
+})();
+</script>
+
+<script>
+/* Decorative delivery animation; independent of delivery records and timers. */
+(()=>{
+  const scene=document.querySelector('.city-strip'),svg=scene.querySelector('svg');
+  const get=id=>document.getElementById(id),rider=get('journey-rider'),bag=get('journey-bag'),label=get('journey-label'),status=get('journey-status'),thanks=get('journey-thanks');
+  const wheels=[...scene.querySelectorAll('.cycle-wheel')],arm=get('journey-arm'),customerArm=get('journey-customer-arm');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)');
+  const mix=(a,b,t)=>a+(b-a)*t,clamp=t=>Math.max(0,Math.min(1,t)),ease=t=>t*t*(3-2*t);
+  function journeyState(t){
+    t=((t%32)+32)%32;
+    if(t<8)return{x:mix(-80,420,ease(t/8)),moving:true,phase:'出發取餐',pickup:0,hand:0,done:false};
+    if(t<12)return{x:420,moving:false,phase:t<10?'店舖取餐':'餐點已取 ✓',pickup:clamp((t-8.8)/2),hand:0,done:false};
+    if(t<23)return{x:mix(420,1044,ease((t-12)/11)),moving:true,phase:'正在配送',pickup:1,hand:0,done:false};
+    if(t<28)return{x:1044,moving:false,phase:t<26?'交給客人':'已送達 ✓',pickup:1,hand:clamp((t-23.5)/2.5),done:t>=26};
+    return{x:mix(1044,1280,ease((t-28)/4)),moving:true,phase:'下一程，出發',pickup:1,hand:1,done:true};
+  }
+  function render(t){
+    const q=journeyState(t);rider.setAttribute('transform',`translate(${q.x} 207)`);
+    const spin=(q.x+80)/(.64*23)*180/Math.PI;
+    wheels.forEach(w=>w.style.transform=`rotate(${spin}deg)`);
+    const angle=q.moving?(q.x+80)/30:0;
+    const leg=(offset)=>{const a=angle+offset,fx=-1+Math.cos(a)*10,fy=-10+Math.sin(a)*10;return{d:`M-17-56L${(fx-17)/2+12} ${(-56+fy)/2}L${fx} ${fy}`,fx,fy};};
+    const front=leg(0),back=leg(Math.PI);
+    get('journey-leg-front').setAttribute('d',front.d);get('journey-leg-back').setAttribute('d',back.d);get('journey-shoe').setAttribute('d',`M${front.fx-3} ${front.fy}h11`);
+    const reaching=q.hand>0&&!q.done?Math.sin(q.hand*Math.PI):0;
+    arm.setAttribute('d',`M-2-86L${16+14*reaching} ${-66-4*reaching}L${33+23*reaching} ${-62-2*reaching}`);
+    customerArm.setAttribute('d',q.hand>0?'M-7-49L-18-39L-22-35':'M-7-49L-12-33L-11-22');
+    let bx=q.x-25,by=149,opacity=0;
+    if(t>=8.8&&t<12){bx=mix(434,395,ease(q.pickup));by=mix(172,149,ease(q.pickup))-Math.sin(q.pickup*Math.PI)*12;opacity=1;}
+    if(t>=12&&t<23.5){opacity=1;}
+    if(t>=23.5&&t<28){bx=mix(1019,1068,ease(q.hand));by=mix(149,172,ease(q.hand))-Math.sin(q.hand*Math.PI)*8;opacity=1;}
+    if(t>=28){bx=1068;by=172;opacity=1-clamp((t-30)/2);}
+    bag.setAttribute('transform',`translate(${bx} ${by})`);bag.setAttribute('opacity',opacity);
+    label.setAttribute('transform',`translate(${Math.max(65,Math.min(1130,q.x))} 111)`);status.textContent=q.phase;
+    thanks.setAttribute('opacity',q.done?1-clamp((t-30)/2):0);
+    const small=scene.clientWidth<700,width=small?600:1200;
+    const camera=small?Math.max(0,Math.min(600,q.x-260)):0;
+    svg.setAttribute('viewBox',`${camera} 0 ${width} 240`);
+  }
+  let elapsed=0,last=null,visible=true,raf=null;
+  function frame(now){raf=null;if(document.hidden||!visible||reduce.matches){last=null;return;}
+    if(last!==null)elapsed=(elapsed+Math.min(now-last,80)/1000)%32;last=now;render(elapsed);raf=requestAnimationFrame(frame);}
+  function resume(){if(raf!==null)cancelAnimationFrame(raf);raf=null;last=null;if(reduce.matches){render(26.5);return;}if(visible&&!document.hidden)raf=requestAnimationFrame(frame);}
+  if('IntersectionObserver'in window)new IntersectionObserver(e=>{visible=e[0].isIntersecting;resume();}).observe(scene);
+  document.addEventListener('visibilitychange',resume);reduce.addEventListener('change',resume);
+  window.addEventListener('resize',()=>render(reduce.matches?26.5:elapsed),{passive:true});
+  render(0);resume();
 })();
 </script>
 </body>
