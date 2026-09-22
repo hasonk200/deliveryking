@@ -2,13 +2,14 @@
 <html lang="zh-Hant">
 <!--
   ══════════════════════════════════════════════════════════════════
-  RUNLOG 外送日誌 - 版本: v4.6.1 (Polished UX & Timeline PWA Edition)
+  RUNLOG 外送日誌 - 版本: v4.7.1 (Polished UX & Timeline PWA Edition)
   
   【本版本核心更新】
   1. 視覺優化：修復 MutationObserver 導致每秒數字抽搐跳動問題，大幅省電與提升滑順度。
   2. 聚光燈優化：卡片 hover 反光改為全域事件委派，支援動態載入的平台卡片。
   3. 選單邏輯統一：移除重複綁定的漢堡選單事件，手機版開關與點擊外部關閉極致流暢。
   4. 完整功能保留：等單/休息時間段記錄 (Timeline)、完整 PWA 離線與安裝、桌面捷徑。
+  5. edited by astra
   ══════════════════════════════════════════════════════════════════
 -->
 <head>
@@ -431,6 +432,80 @@ body{overflow-x:hidden}
 .shift-timeline .seg.br{color:#f0b429;border-color:rgba(240,180,41,.35)}
 .shift-timeline .seg.wt{color:#4cc9ec;border-color:rgba(76,201,236,.35)}
 .shift-timeline .seg.on{color:var(--ue)}
+/* ── 時間軸編輯列 ── */
+.tlrow{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center}
+.tlrow.p{grid-template-columns:1fr 1fr .9fr auto}
+.tlrow input[type=time],.tlrow select{width:100%;padding:7px 9px;border-radius:9px}
+.tlrow .tl-del{font-size:15px;line-height:1}
+.tlrow.xd input.tl-e{border-color:var(--sun)}
+.tl-hint{font-size:11.5px;color:var(--faint);margin-bottom:8px;line-height:1.5}
+
+/* Motion redesign: presentation only. */
+:root { --motion-ease:cubic-bezier(.22,1,.36,1); }
+.city-strip{height:224px;position:relative;background:linear-gradient(135deg,#142c3c,#233b4b 55%,#695252);border-color:#ffffff17;border-radius:18px;isolation:isolate}
+.city-strip>svg{position:absolute;inset:0;width:100%;height:100%}
+.city-strip .scene-copy{position:absolute;left:28px;top:25px;z-index:2;color:#eff6fa}
+.scene-copy .scene-eyebrow{font:10px var(--mono);letter-spacing:3px;color:#a9c6ce;margin-bottom:8px}
+.scene-copy strong{display:block;font:700 27px var(--disp);letter-spacing:1px}
+.scene-copy p{font-size:11px;color:#b9cbd0;margin-top:5px}
+.scene-tag{position:absolute;right:19px;top:17px;color:#e9d9b6;border:1px solid #e9d9b633;border-radius:20px;padding:5px 10px;font:9px var(--mono);letter-spacing:2px;background:#162a394d}
+.city-strip .motion-cloud{animation:cloudFloat 28s ease-in-out infinite alternate}
+.city-strip .motion-cloud.second{animation-delay:-14s;animation-duration:38s}
+.city-strip .scene-road{animation:roadFlow 1.4s linear infinite}
+.city-strip .courier-float{animation:courierFloat 4s ease-in-out infinite}
+.city-strip .courier-bob{animation:courierBob .9s ease-in-out infinite}
+.city-strip .cycle-wheel{transform-box:fill-box;transform-origin:center;animation:cycleSpin 1.2s linear infinite}
+.city-strip .pedal-front,.city-strip .pedal-back{animation:pedalStep .6s ease-in-out infinite alternate}
+.city-strip .pedal-back{animation-direction:alternate-reverse}
+.city-strip .passing-trees{animation:treePass 12s linear infinite}
+.city-strip .scene-star{animation:starGlow 5s ease-in-out infinite alternate}
+.city-strip .scene-star:nth-child(even){animation-delay:-2s}
+@keyframes cloudFloat{to{transform:translateX(65px)}}
+@keyframes roadFlow{to{stroke-dashoffset:88}}
+@keyframes courierFloat{0%,100%{transform:translateX(-7px)}50%{transform:translateX(7px)}}
+@keyframes courierBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.4px)}}
+@keyframes cycleSpin{to{transform:rotate(360deg)}}
+@keyframes pedalStep{from{transform:translateY(-3px)}to{transform:translateY(3px)}}
+@keyframes treePass{from{transform:translateX(800px)}to{transform:translateX(-1250px)}}
+@keyframes starGlow{from{opacity:.25}to{opacity:.85}}
+.view{animation:none}
+.view.active{animation:screenArrive .42s var(--motion-ease)}
+.view.active .card{animation:cardArrive .55s var(--motion-ease) backwards}
+.view.active .card:nth-child(2){animation-delay:45ms}
+.view.active .card:nth-child(3){animation-delay:90ms}
+.view.active .card:nth-child(4){animation-delay:135ms}
+@keyframes screenArrive{from{opacity:.35;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardArrive{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.card{transition:border-color .25s,box-shadow .25s}
+.card:before{background:radial-gradient(420px 200px at var(--mx,50%) var(--my,0%),rgba(76,201,236,.07),transparent 70%)}
+.btn,.nav-btn,.chip,.pill,.fchip,.cal-cell{will-change:auto}
+.btn,.nav-btn,.fchip{transition:background .2s,color .2s,transform .2s var(--motion-ease),box-shadow .2s}
+.btn-primary:after{display:none}
+.btn:active:not(:disabled),.fchip:active{transform:scale(.97)}
+.btn:focus-visible,.nav-btn:focus-visible,.fchip:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+@media(hover:hover){.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 14px #0002}.card:hover{border-color:var(--line2)}}
+.overlay.open{animation:veilArrive .2s ease-out}
+.overlay.open .modal{animation:dialogArrive .35s var(--motion-ease)}
+@keyframes veilArrive{from{opacity:0}to{opacity:1}}
+@keyframes dialogArrive{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.toast{animation:toastArrive .35s var(--motion-ease)}
+@keyframes toastArrive{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+:root[data-theme="light"] .city-strip{background:linear-gradient(135deg,#bcdbe8,#d5e4e6 55%,#f5d1ac);border-color:#b2ccd5}
+:root[data-theme="light"] .scene-copy{color:#234456}
+:root[data-theme="light"] .scene-copy p,:root[data-theme="light"] .scene-eyebrow{color:#456778}
+:root[data-theme="light"] .scene-tag{color:#456778;border-color:#45677840;background:#ffffff50}
+:root[data-theme="light"] .scene-star{opacity:0;animation:none}
+@media(max-width:700px){.city-strip{height:190px}.city-strip .scene-copy{left:17px;top:17px}.scene-copy strong{font-size:22px}.scene-copy p{display:none}.scene-copy .scene-eyebrow{font-size:8px;letter-spacing:2px}.scene-tag{display:none}}
+@media(prefers-reduced-motion:reduce){.city-strip *, .view.active, .view.active .card, .overlay.open, .overlay.open .modal, .toast{animation:none!important}.btn:hover:not(:disabled){transform:none}}
+
+
+/* A gently passing restaurant street behind the courier. */
+.city-strip .shop-parallax{animation:shopStreetPass 65s linear infinite}
+.city-strip .shop-steam{animation:shopSteam 3.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes shopStreetPass{from{transform:translateX(0)}to{transform:translateX(-1200px)}}
+@keyframes shopSteam{0%{opacity:0;transform:translateY(3px)}40%{opacity:.7}100%{opacity:0;transform:translateY(-5px)}}
+@media(prefers-reduced-motion:reduce){.city-strip .shop-parallax,.city-strip .shop-steam{animation:none!important}}
+
 </style>
 </head>
 <body>
@@ -505,127 +580,156 @@ body{overflow-x:hidden}
     </div>
   </header>
 
-  <div class="city-strip" aria-hidden="true">
-    <div class="sun-disc"></div>
-    <div class="cloud c1"></div>
-    <div class="cloud c2"></div>
-    <div class="cloud c3"></div>
-  <svg viewBox="0 0 1200 170" preserveAspectRatio="xMidYMax slice">
-    <defs>
-      <linearGradient id="beamG" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0" stop-color="#fff8d8" stop-opacity=".5"/><stop offset="1" stop-color="#fff8d8" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <circle class="star" cx="90" cy="18" r="1.3" fill="#cfe6f5"/>
-    <circle class="star" cx="300" cy="12" r="1.1" fill="#cfe6f5" style="animation-delay:.7s"/>
-    <circle class="star" cx="520" cy="24" r="1.4" fill="#cfe6f5" style="animation-delay:1.4s"/>
-    <circle class="star" cx="700" cy="10" r="1.1" fill="#cfe6f5" style="animation-delay:.3s"/>
-    <circle class="star" cx="930" cy="20" r="1.3" fill="#cfe6f5" style="animation-delay:1.9s"/>
-    <circle class="star" cx="1120" cy="14" r="1.1" fill="#cfe6f5" style="animation-delay:1.1s"/>
-    <g class="bldg">
-      <rect x="0" y="78" width="70" height="52"/><rect x="80" y="64" width="34" height="66"/>
-      <rect x="118" y="88" width="46" height="42"/>
-      <rect x="209" y="10" width="3" height="28"/><rect x="204" y="36" width="13" height="7" rx="3"/>
-      <ellipse cx="210.5" cy="52" rx="15" ry="9"/><polygon points="205,58 216,58 213,130 208,130"/>
-      <rect x="250" y="70" width="40" height="60"/><rect x="300" y="84" width="56" height="46"/>
-      <rect x="370" y="60" width="30" height="70"/><rect x="410" y="90" width="60" height="40"/>
-      <rect x="480" y="74" width="36" height="56"/><rect x="530" y="88" width="52" height="42"/>
-      <rect x="600" y="66" width="30" height="64"/><rect x="640" y="86" width="58" height="44"/>
-      <rect x="710" y="76" width="40" height="54"/><rect x="760" y="92" width="50" height="38"/>
-      <rect x="820" y="70" width="34" height="60"/><rect x="860" y="88" width="56" height="42"/>
-      <rect x="1120" y="80" width="44" height="50"/><rect x="1170" y="68" width="30" height="62"/>
-    </g>
-    <g class="win">
-      <rect x="88" y="72" width="3" height="4"/><rect x="96" y="84" width="3" height="4"/>
-      <rect x="378" y="70" width="3" height="4"/><rect x="385" y="92" width="3" height="4"/>
-      <rect x="608" y="76" width="3" height="4"/><rect x="828" y="80" width="3" height="4"/>
-      <rect x="1130" y="90" width="3" height="4"/><rect x="1178" y="78" width="3" height="4"/>
-    </g>
-    <g>
-      <rect x="1015" y="88" width="7" height="42" fill="#4a2530"/><rect x="1082" y="88" width="7" height="42" fill="#4a2530"/>
-      <path d="M1000,78 Q1053,62 1106,78 L1098,86 Q1053,72 1008,86 Z" fill="#58242e"/>
-      <path d="M1008,94 Q1053,82 1098,94 L1092,100 Q1053,90 1014,100 Z" fill="#58242e"/>
-      <rect x="1038" y="100" width="30" height="12" fill="#58242e"/>
-      <text class="sign" x="1053" y="109.5" font-size="8" fill="#ffd24a" text-anchor="middle">唐人街</text>
-    </g>
-    <g>
-      <rect x="40" y="100" width="150" height="40" fill="#101820" stroke="#223140"/>
-      <rect x="48" y="86" width="134" height="16" rx="3" fill="#201204" stroke="#ffa130"/>
-      <text class="sign flicker" x="115" y="98" font-size="10" letter-spacing="3" fill="#ffa130" text-anchor="middle" font-weight="700">SHAWARMA</text>
-      <rect x="46" y="104" width="138" height="5" fill="#ffa130"/>
-      <line x1="49" y1="110" x2="181" y2="110" stroke="#ffa130" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
-      <rect x="56" y="118" width="64" height="22" fill="#2a1a08"/><rect x="56" y="118" width="64" height="22" fill="#ff9d2e" opacity=".14"/>
-      <g transform="translate(88,122)"><polygon class="spit" points="-4,0 4,0 0,15" fill="#c97a2a"/><line x1="0" y1="-3" x2="0" y2="17" stroke="#8a8a8a" stroke-width="1"/></g>
-      <rect x="150" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
-    </g>
-    <g>
-      <rect x="250" y="100" width="150" height="40" fill="#101820" stroke="#223140"/>
-      <rect x="258" y="86" width="134" height="16" rx="3" fill="#7a1216"/>
-      <path d="M270,99 c0,-10 7,-10 8,0 c1,-10 7,-10 7,0" stroke="#ffd24a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
-      <text class="sign" x="300" y="98.5" font-size="9.5" fill="#ffd24a" font-weight="700">McDonald's</text>
-      <rect x="256" y="104" width="138" height="5" fill="#7a1216"/>
-      <line x1="259" y1="110" x2="391" y2="110" stroke="#7a1216" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
-      <rect x="266" y="118" width="64" height="22" fill="#2a1a08"/><rect x="266" y="118" width="64" height="22" fill="#ffd24a" opacity=".12"/>
-      <rect x="360" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
-    </g>
-    <g>
-      <rect x="460" y="100" width="160" height="40" fill="#101820" stroke="#223140"/>
-      <rect x="468" y="86" width="144" height="16" rx="8" fill="#b01e2e"/>
-      <text class="sign" x="540" y="98" font-size="9.5" fill="#ffffff" text-anchor="middle" font-weight="700" font-style="italic">Tim Hortons</text>
-      <rect x="466" y="104" width="148" height="5" fill="#b01e2e"/>
-      <line x1="469" y1="110" x2="611" y2="110" stroke="#b01e2e" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
-      <rect x="476" y="118" width="70" height="22" fill="#2a1a08"/><rect x="476" y="118" width="70" height="22" fill="#ff9d2e" opacity=".14"/>
-      <g transform="translate(511,126)"><rect x="-4" y="0" width="8" height="9" rx="1.5" fill="#b01e2e"/><rect x="-4" y="2" width="8" height="2" fill="#fff"/>
-        <path class="steam" d="M-1,-2 c1,-2 -1,-3 0,-5" stroke="#fff" stroke-width="1.2" fill="none"/>
-        <path class="steam" d="M2,-2 c1,-2 -1,-3 0,-5" stroke="#fff" stroke-width="1.2" fill="none" style="animation-delay:1.2s"/></g>
-      <rect x="580" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
-    </g>
-    <g>
-      <rect x="680" y="100" width="160" height="40" fill="#101820" stroke="#223140"/>
-      <rect x="688" y="86" width="144" height="16" rx="3" fill="#06281f" stroke="#17d17c"/>
-      <text class="sign" x="760" y="98" font-size="10" letter-spacing="2" fill="#17d17c" text-anchor="middle" font-weight="700">BAR BURRITO</text>
-      <rect x="686" y="104" width="148" height="5" fill="#17d17c"/>
-      <line x1="689" y1="110" x2="831" y2="110" stroke="#17d17c" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 12"/>
-      <rect x="696" y="118" width="70" height="22" fill="#12241c"/><rect x="696" y="118" width="70" height="22" fill="#17d17c" opacity=".12"/>
-      <g transform="translate(731,129)"><rect x="-9" y="-4" width="18" height="8" rx="4" fill="#d9b98a"/><rect x="-9" y="-4" width="7" height="8" rx="3.5" fill="#b01e2e"/></g>
-      <rect x="800" y="112" width="28" height="28" fill="#0b1015" stroke="#223140"/>
-    </g>
-    <g>
-      <rect x="880" y="104" width="100" height="36" fill="#101820" stroke="#223140"/>
-      <rect x="886" y="90" width="88" height="14" rx="3" fill="#06282e" stroke="#4cc9ec"/>
-      <text class="sign flicker" x="930" y="100.5" font-size="9" letter-spacing="1" fill="#4cc9ec" text-anchor="middle" font-weight="700" style="animation-delay:2.5s">⚡ E-CHARGE</text>
-      <rect x="896" y="116" width="30" height="24" fill="#0d1a20"/><rect x="940" y="116" width="30" height="24" fill="#0d1a20"/>
-    </g>
-    <rect x="0" y="140" width="1200" height="30" fill="#0a0e12"/>
-    <rect x="0" y="140" width="1200" height="2" fill="#223140"/>
-    <line class="road-dash" x1="0" y1="157" x2="1200" y2="157" stroke="#ffd24a" stroke-width="3" stroke-dasharray="24 28" opacity=".5"/>
-    <g class="rider-move">
-      <g transform="translate(0,158) scale(.95)">
-        <polygon points="38,-15 68,-6 68,-21" fill="url(#beamG)"/>
-        <g transform="translate(0,0)"><g class="wheel"><circle r="9" fill="#0a0e12" stroke="#33455a" stroke-width="2.5"/><path d="M-6,0H6M0,-6V6M-4.2,-4.2L4.2,4.2M-4.2,4.2L4.2,-4.2" stroke="#33455a" stroke-width="1.4"/></g></g>
-        <g transform="translate(36,0)"><g class="wheel"><circle r="9" fill="#0a0e12" stroke="#33455a" stroke-width="2.5"/><path d="M-6,0H6M0,-6V6M-4.2,-4.2L4.2,4.2M-4.2,4.2L4.2,-4.2" stroke="#33455a" stroke-width="1.4"/></g></g>
-        <path d="M0,0 L10,-14 L28,-14 L36,0 M10,-14 L16,-2 L0,0 M28,-14 L31,-22 L34,-23" stroke="#4cc9ec" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-        <circle cx="16" cy="-2" r="2.5" fill="#33455a"/>
-        <rect x="17" y="-13" width="9" height="6" rx="1" fill="#0f1a22" stroke="#4cc9ec" stroke-width="1"/>
-        <path d="M21,-12 l2,0 l-1.4,2.4 l2,0 l-3.4,3.6 l1,-2.8 l-2,0 z" fill="#ffd24a"/>
-        <path d="M10,-14 L8,-20" stroke="#4cc9ec" stroke-width="2.5"/><rect x="3" y="-23" width="10" height="3" rx="1.5" fill="#1b2733"/>
-        <path d="M-2,-20 L0,0 M-16,-20 L-2,-20" stroke="#33455a" stroke-width="2"/>
-        <rect x="-16" y="-32" width="14" height="12" rx="2" fill="#ffd24a" stroke="#b98a12"/>
-        <path d="M-8.5,-30 l3,0 l-1.6,3.4 l3,0 l-5,5.6 l1.4,-4 l-2.6,0 z" fill="#221a03"/>
-        <g class="rider-body">
-          <path d="M6,-24 L12,-14 L13,-4" stroke="#22303d" stroke-width="4" fill="none" stroke-linecap="round"/>
-          <path d="M6,-24 L15,-16 L19,-5" stroke="#22303d" stroke-width="4" fill="none" stroke-linecap="round"/>
-          <path d="M6,-24 L16,-37" stroke="#ff5a3c" stroke-width="5" stroke-linecap="round"/>
-          <path d="M15,-34 L23,-28 L30,-22" stroke="#ff5a3c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-          <circle cx="20.5" cy="-41.5" r="4.6" fill="#e8b98d"/>
-          <path d="M15.7,-42.5 a4.9,4.9 0 0 1 9.6,0 l-1,1.6 h-7.6 z" fill="#e8eef4"/>
-          <line x1="22" y1="-40.5" x2="25.5" y2="-40.5" stroke="#22303d" stroke-width="1.6"/>
-        </g>
-        <circle cx="37" cy="-13" r="1.6" fill="#fffbe0"/>
-      </g>
-    </g>
-  </svg>
-  </div>
+<div class="city-strip" aria-hidden="true">
+<div class="scene-copy"><div class="scene-eyebrow">RUNLOG / CITY IN MOTION</div><strong>每一程，都算數。</strong><p>穿過城市，記下今天的努力。</p></div><span class="scene-tag">TORONTO · ON THE MOVE</span>
+<svg viewBox="0 0 1200 240" preserveAspectRatio="xMidYMax slice">
+<defs><linearGradient id="motion-road" x2="0" y2="1"><stop stop-color="#20323e"/><stop offset="1" stop-color="#12232e"/></linearGradient><linearGradient id="motion-light"><stop stop-color="#ffe8ad" stop-opacity=".32"/><stop offset="1" stop-color="#ffe8ad" stop-opacity="0"/></linearGradient></defs>
+<circle cx="958" cy="65" r="35" fill="#f5d7a0" opacity=".13"/><circle cx="958" cy="65" r="24" fill="#f5d7a0" opacity=".72"/>
+<g fill="#dfebea"><circle class="scene-star" cx="430" cy="32" r="1.4"/><circle class="scene-star" cx="729" cy="23" r="1.1"/><circle class="scene-star" cx="1070" cy="38" r="1.5"/></g>
+<g class="motion-cloud" fill="#d8e8e8" opacity=".09"><rect x="350" y="55" width="155" height="15" rx="8"/><ellipse cx="420" cy="54" rx="39" ry="16"/></g><g class="motion-cloud second" fill="#d8e8e8" opacity=".12"><rect x="780" y="34" width="115" height="11" rx="6"/><ellipse cx="838" cy="33" rx="28" ry="11"/></g>
+
+<rect x="0" y="127" width="72" height="50" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M10 135h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M10 151h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="80" y="101" width="46" height="76" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M90 109h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M90 125h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M90 141h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M90 157h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="139" y="136" width="65" height="41" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M149 144h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M149 160h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="213" y="115" width="39" height="62" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M223 123h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M223 139h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M223 155h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="268" y="126" width="58" height="51" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M278 134h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M278 150h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M278 166h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="345" y="92" width="49" height="85" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M355 100h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M355 116h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M355 132h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M355 148h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M355 164h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="403" y="128" width="70" height="49" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M413 136h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M413 152h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="489" y="112" width="35" height="65" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M499 120h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M499 136h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M499 152h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="540" y="139" width="67" height="38" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M550 147h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M550 163h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="620" y="115" width="38" height="62" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M630 123h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M630 139h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M630 155h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="675" y="95" width="57" height="82" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M685 103h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M685 119h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M685 135h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M685 151h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="745" y="129" width="59" height="48" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M755 137h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M755 153h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="824" y="104" width="62" height="73" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M834 112h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M834 128h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M834 144h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M834 160h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="905" y="131" width="44" height="46" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M915 139h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M915 155h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="979" y="109" width="57" height="68" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M989 117h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M989 133h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M989 149h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M989 165h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="1050" y="133" width="66" height="44" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M1060 141h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M1060 157h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<rect x="1135" y="99" width="65" height="78" rx="2" fill="#223c4b" opacity=".64"/>
+<path d="M1145 107h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M1145 123h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M1145 139h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<path d="M1145 155h5 m8 0h5" stroke="#e5c189" stroke-width="3" opacity=".22"/>
+<g fill="#203b49"><path d="M873 176l4-115h5l5 115z"/><ellipse cx="880" cy="69" rx="15" ry="5"/><rect x="878.5" y="24" width="3" height="39"/><ellipse cx="880" cy="62" rx="10" ry="3"/></g>
+<path d="M0 180Q200 158 380 180T750 173T1200 178V205H0Z" fill="#192f3b"/>
+<!-- Restaurant street: decorative SVG only. -->
+<g class="shop-parallax"><g id="restaurant-street"><g transform="translate(65 112)">
+<rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
+<rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
+<rect x="0" y="0" width="220" height="27" rx="3" fill="#ae273a"/><text x="110" y="19" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-weight="bold" font-size="18" fill="#fff4de">Tim Hortons</text>
+<rect x="8" y="36" width="135" height="38" rx="2" fill="#172c36"/><rect class="shop-window" x="9" y="37" width="133" height="36" rx="2" fill="#e2ad69" opacity=".16"/>
+<path d="M77 37V73M9 73H142" stroke="#82938f" stroke-opacity=".4"/>
+<path d="M17 40L39 40L17 62M86 40L105 40L86 59" fill="#ffe4bc" opacity=".07"/>
+<rect x="158" y="34" width="48" height="46" rx="1" fill="#182e37" stroke="#637979"/>
+<rect x="162" y="38" width="40" height="29" fill="#e2ad69" opacity=".12"/>
+<path d="M196 57V64" stroke="#e8d6b2" stroke-width="1.5"/>
+<rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
+<path d="M4 28H216L220 35H0Z" fill="#ae273a"/><path d="M5 29H215" stroke="#fff4de" stroke-width="1.5" opacity=".5"/>
+<rect x="54" y="49" width="14" height="17" rx="2" fill="#b4323e"/><path d="M53 49H69M56 56H66" stroke="#fff0d8" stroke-width="2"/><path class="shop-steam" d="M58 45q-3-4 0-7t0-7M65 44q-3-4 0-7" stroke="#ffe4c6" stroke-width="1.5" fill="none"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
+</g><g transform="translate(350 112)">
+<rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
+<rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
+<rect x="0" y="0" width="220" height="27" rx="3" fill="#a5282e"/><text x="126" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" letter-spacing="0" fill="#ffd05e">McDonald’s</text><path d="M17 21C17 1 28 1 29 20C30 1 41 1 41 21" fill="none" stroke="#ffd05e" stroke-width="3.8"/>
+<rect x="8" y="36" width="135" height="38" rx="2" fill="#172c36"/><rect class="shop-window" x="9" y="37" width="133" height="36" rx="2" fill="#e2ad69" opacity=".16"/>
+<path d="M77 37V73M9 73H142" stroke="#82938f" stroke-opacity=".4"/>
+<path d="M17 40L39 40L17 62M86 40L105 40L86 59" fill="#ffe4bc" opacity=".07"/>
+<rect x="158" y="34" width="48" height="46" rx="1" fill="#182e37" stroke="#637979"/>
+<rect x="162" y="38" width="40" height="29" fill="#e2ad69" opacity=".12"/>
+<path d="M196 57V64" stroke="#e8d6b2" stroke-width="1.5"/>
+<rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
+<path d="M4 28H216L220 35H0Z" fill="#a5282e"/><path d="M5 29H215" stroke="#ffd05e" stroke-width="1.5" opacity=".5"/>
+<path d="M52 54q10-12 20 0Z" fill="#e6af65"/><path d="M52 58H72" stroke="#79a65e" stroke-width="3"/><path d="M52 61H72" stroke="#753f2a" stroke-width="4"/><path d="M52 65H72" stroke="#e6af65" stroke-width="4"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
+</g><g transform="translate(650 112)">
+<rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
+<rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
+<rect x="0" y="0" width="220" height="27" rx="3" fill="#aa302e"/><text x="110" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="13" letter-spacing="0" fill="#fff5d6">LAZEEZ SHAWARMA</text>
+<rect x="8" y="36" width="135" height="38" rx="2" fill="#172c36"/><rect class="shop-window" x="9" y="37" width="133" height="36" rx="2" fill="#e2ad69" opacity=".16"/>
+<path d="M77 37V73M9 73H142" stroke="#82938f" stroke-opacity=".4"/>
+<path d="M17 40L39 40L17 62M86 40L105 40L86 59" fill="#ffe4bc" opacity=".07"/>
+<rect x="158" y="34" width="48" height="46" rx="1" fill="#182e37" stroke="#637979"/>
+<rect x="162" y="38" width="40" height="29" fill="#e2ad69" opacity=".12"/>
+<path d="M196 57V64" stroke="#e8d6b2" stroke-width="1.5"/>
+<rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
+<path d="M4 28H216L220 35H0Z" fill="#aa302e"/><path d="M5 29H215" stroke="#fff5d6" stroke-width="1.5" opacity=".5"/>
+<path d="M61 41V69" stroke="#cad2d2" stroke-width="2"/><path class="shop-spit" d="M51 45H71L66 65H56Z" fill="#d09a57"/><path d="M55 49H67M56 54H65M58 59H64" stroke="#986134" stroke-width="2"/><path d="M48 69H74" stroke="#92a2a4" stroke-width="2"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
+</g><g transform="translate(950 112)">
+<rect x="-3" y="-4" width="226" height="87" rx="4" fill="#102630" opacity=".3"/>
+<rect width="220" height="80" rx="3" fill="#30434b" stroke="#627173" stroke-opacity=".4"/>
+<rect x="0" y="0" width="220" height="27" rx="3" fill="#ef8d36"/><text x="110" y="18" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" letter-spacing="0.6" fill="#fff9e7">POPEYES</text>
+<rect x="8" y="36" width="135" height="38" rx="2" fill="#172c36"/><rect class="shop-window" x="9" y="37" width="133" height="36" rx="2" fill="#e2ad69" opacity=".16"/>
+<path d="M77 37V73M9 73H142" stroke="#82938f" stroke-opacity=".4"/>
+<path d="M17 40L39 40L17 62M86 40L105 40L86 59" fill="#ffe4bc" opacity=".07"/>
+<rect x="158" y="34" width="48" height="46" rx="1" fill="#182e37" stroke="#637979"/>
+<rect x="162" y="38" width="40" height="29" fill="#e2ad69" opacity=".12"/>
+<path d="M196 57V64" stroke="#e8d6b2" stroke-width="1.5"/>
+<rect x="168" y="42" width="27" height="11" rx="2" fill="#344d48"/><text x="181.5" y="50" text-anchor="middle" font-family="Arial,sans-serif" font-size="6" letter-spacing="1" fill="#b8e0b6">OPEN</text>
+<path d="M4 28H216L220 35H0Z" fill="#ef8d36"/><path d="M5 29H215" stroke="#fff9e7" stroke-width="1.5" opacity=".5"/>
+<path d="M53 49H74L70 68H57Z" fill="#f3eee0"/><path d="M54 54H73L72 60H55Z" fill="#ef8d36"/><path d="M55 47q0-7 6-4q2-8 7-2q7-3 6 7" fill="#d6a05a"/><rect x="-7" y="80" width="234" height="4" rx="1" fill="#687b7c"/>
+</g></g><use href="#restaurant-street" x="1200"/></g>
+<path d="M0 197H1200V240H0Z" fill="url(#motion-road)"/><path d="M0 197H1200" stroke="#648082" stroke-width="2" opacity=".4"/>
+<path class="scene-road" d="M-100 228H1300" stroke="#d3b579" stroke-width="2" stroke-dasharray="36 52" opacity=".45"/>
+<g class="passing-trees" opacity=".75"><path d="M60 194v-40M97 194v-31" stroke="#192c35" stroke-width="5"/><ellipse cx="60" cy="150" rx="18" ry="24" fill="#304b4b"/><ellipse cx="97" cy="162" rx="12" ry="18" fill="#3b5552"/></g>
+<g transform="translate(690 203)"><g class="courier-float"><ellipse cx="0" cy="10" rx="73" ry="5" fill="#09161d" opacity=".35"/>
+<g class="courier-bob"><path d="M58-24L159-46V-5Z" fill="url(#motion-light)"/>
+<g transform="translate(-43 -10)"><g class="cycle-wheel"><circle r="23" fill="#132731" stroke="#92afb6" stroke-width="3"/><circle r="18" fill="none" stroke="#385661"/><path d="M-18 0H18M0-18V18M-13-13L13 13M13-13L-13 13" stroke="#70939d" stroke-width="1.2"/></g></g>
+<g transform="translate(47 -10)"><g class="cycle-wheel"><circle r="23" fill="#132731" stroke="#92afb6" stroke-width="3"/><circle r="18" fill="none" stroke="#385661"/><path d="M-18 0H18M0-18V18M-13-13L13 13M13-13L-13 13" stroke="#70939d" stroke-width="1.2"/></g></g>
+<path class="pedal-back" d="M-16-54L8-44L-7-13" fill="none" stroke="#253c4b" stroke-width="9" stroke-linecap="round"/>
+<path d="M-43-10L-23-47L25-47L-1-10Z M-23-47L-1-10M25-47L47-10M-23-47L-28-57M25-47L31-63H40" fill="none" stroke="#68c4c9" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M-36-57H-19" stroke="#14242e" stroke-width="5" stroke-linecap="round"/><rect x="-5" y="-40" width="21" height="10" rx="3" fill="#294d59"/>
+<circle cx="-1" cy="-10" r="6" fill="#e3b66d"/>
+<path class="pedal-front" d="M-17-56L-3-37L12-18" fill="none" stroke="#496074" stroke-width="9" stroke-linecap="round"/><path class="pedal-front" d="M9-17H20" stroke="#d9e1d8" stroke-width="5" stroke-linecap="round"/>
+<path d="M-18-58L-4-91" stroke="#efb953" stroke-width="18" stroke-linecap="round"/>
+<path d="M-2-86L16-66L33-62" fill="none" stroke="#f4c66b" stroke-width="7" stroke-linecap="round"/>
+<rect x="-54" y="-92" width="29" height="32" rx="5" fill="#e6a947"/><path d="M-48-84H-32M-40-87V-68" stroke="#ffe0a0" stroke-width="2"/><path d="M-26-89L-13-79" stroke="#263c47" stroke-width="3"/>
+<circle cx="3" cy="-107" r="10" fill="#dbac85"/><path d="M-8-110Q-6-125 6-121Q16-120 16-109Z" fill="#d5e8e6"/><path d="M8-109L16-108" stroke="#203743" stroke-width="3"/><path d="M-6-105L0-97L8-101" fill="none" stroke="#355260" stroke-width="1.5"/>
+<circle cx="43" cy="-47" r="3" fill="#ffe9ae"/>
+</g></g></g></svg></div>
 
   <main>
     <!-- ── 總覽 ── -->
@@ -786,6 +890,7 @@ body{overflow-x:hidden}
       <div class="card">
         <h3>當日詳情 <span class="en" id="calDayTitle">DAY</span>
           <span class="right">
+            <button class="btn btn-ghost btn-sm" id="calTl">✂️ 時間軸</button>
             <button class="btn btn-ghost btn-sm" id="calPay">💳 入帳</button>
             <button class="btn btn-primary btn-sm" id="calAdd">＋ 記一單（此日）</button>
           </span>
@@ -874,6 +979,16 @@ body{overflow-x:hidden}
             <input type="file" id="importFile" accept=".json" style="display:none">
           </div>
           <p class="tiny" style="margin-top:12px">換手機／換電腦前記得匯出 JSON 備份，到新裝置匯入即可無縫接軌。</p>
+        </div>
+        <div class="card" style="grid-column:1/-1">
+          <h3>版本紀錄 <span class="en">RESTORE POINTS</span></h3>
+          <p class="tiny">儲存目前資料，或返回下方的時間點。一般修改每隔至少 5 分鐘保留一次修改前資料；匯入、清除、還原及雲端覆蓋前另外備份。最多保留最近 30 個版本。</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">
+            <input id="historyName" aria-label="版本名稱" placeholder="版本名稱（選填，例如：星期日收工）" maxlength="80" style="flex:1;min-width:180px">
+            <button class="btn btn-primary" id="historySave">＋ 儲存目前版本</button>
+          </div>
+          <p class="tiny" style="margin-bottom:12px">版本只保存在這個瀏覽器，清除瀏覽器資料後會消失。重要版本請下載 JSON 備份。還原會暫停雲端同步，並保留還原前資料；進行中的計時不會被還原。</p>
+          <div id="historyList" style="max-height:360px;overflow:auto"></div>
         </div>
         <div class="card">
           <h3>危險地帶 <span class="en">DANGER ZONE</span></h3>
@@ -1015,6 +1130,28 @@ body{overflow-x:hidden}
   </div>
 </div>
 
+<!-- ── 時間軸編輯 Modal ── -->
+<div class="overlay" id="tlModal">
+  <div class="modal" style="max-width:560px;max-height:88vh;overflow-y:auto">
+    <h2>✂️ 時間軸編輯 · <span id="tlDate"></span></h2>
+    <div class="stats-row" id="tlSummary"></div>
+    <label>上線時段（可多段）</label>
+    <div class="tl-hint" id="tlHint"></div>
+    <div id="tlOnRows" style="display:flex;flex-direction:column;gap:6px"></div>
+    <button class="btn btn-ghost btn-sm" id="tlAddOn" style="margin:8px 0 14px">＋ 加上線時段</button>
+    <label>休息／等單時段（🗑 刪除＝那段變回跑單）</label>
+    <div id="tlPauseRows" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-ghost btn-sm" id="tlAddBr">＋ ☕ 休息</button>
+      <button class="btn btn-ghost btn-sm" id="tlAddWt">＋ ⏳ 等單</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="tlCancel">取消</button>
+      <button class="btn btn-primary" id="tlSave">儲存時間軸</button>
+    </div>
+  </div>
+</div>
+
 <div id="toastWrap"></div>
 
 <script>
@@ -1065,7 +1202,51 @@ function load(){try{const r=localStorage.getItem(KEY);if(!r)return defaultDB();c
   })}catch(e){return defaultDB()}}
 let db=load();
 if(!db.payouts)db.payouts=[];
-const save=()=>{localStorage.setItem(KEY,JSON.stringify(db));fbSchedulePush();checkAchievements()};
+const HISTORY_KEY='runlog.history.v1';
+const HISTORY_LIMIT=30;
+let historyAutoAt=0;
+function historyRead(){const raw=localStorage.getItem(HISTORY_KEY);if(!raw)return[];
+  const rows=JSON.parse(raw);if(!Array.isArray(rows))throw new Error('版本紀錄格式錯誤');return rows;}
+function historyData(data){
+  if(!data||!Array.isArray(data.deliveries)||!Array.isArray(data.shifts)||!Array.isArray(data.platforms)||!data.platforms.length)throw new Error('資料格式不正確');
+  const copy=JSON.parse(JSON.stringify(data));copy.live=null;return copy;
+}
+function historyAdd(label,data=db){
+  try{const snapshot=historyData(data),rows=historyRead();
+    rows.unshift({id:uid(),at:Date.now(),label:String(label).slice(0,80),data:snapshot});
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(rows.slice(0,HISTORY_LIMIT)));
+    renderHistory();return true;
+  }catch(e){toast('無法建立備份，操作已停止。請先匯出 JSON，檢查瀏覽器儲存空間。','err');return false;}
+}
+function renderHistory(){const el=$('#historyList');if(!el)return;
+  try{const rows=historyRead();el.innerHTML=rows.length?rows.map(r=>{
+    const d=r.data,amount=(d.deliveries||[]).reduce((a,x)=>a+num(x.pay)+num(x.tip),0);
+    return `<div class="vrow" style="gap:12px;flex-wrap:wrap;padding:12px 0"><div style="flex:1;min-width:180px"><b>${esc(r.label)}</b><div class="tiny">${esc(new Date(r.at).toLocaleString())} · ${(d.deliveries||[]).length} 筆紀錄 · ${(d.shifts||[]).length} 日班次 · ${fmtM(amount)}</div></div><button class="btn btn-ghost btn-sm" data-history-download="${esc(r.id)}">下載 JSON</button><button class="btn btn-ghost btn-sm" data-history-restore="${esc(r.id)}">還原</button></div>`;
+  }).join(''):'<p class="dim">還沒有版本，按「儲存目前版本」建立第一個還原點。</p>';
+  }catch(e){el.textContent='無法讀取版本紀錄。現有紀錄未被清除。';}
+}
+function historyRestore(id){const r=historyRead().find(x=>x.id===id);if(!r)return;
+  if(db.live){toast('請先結束目前班次，再還原版本。','err');return;}
+  if(fbPushing){toast('雲端正在上傳，請稍後再還原。','err');return;}
+  const next=historyData(r.data);
+  if(!historyAdd('還原前自動備份'))return;
+  clearTimeout(fbTimer);fbDisconnect();fbCfg.auto=false;saveFb();$('#fbAuto').checked=false;
+  try{localStorage.setItem(KEY,JSON.stringify(next));db=next;renderAll();renderHistory();toast('已還原版本，雲端同步已暫停。','ok');}
+  catch(e){toast('還原失敗，原有資料仍保留。','err');}
+}
+const save=()=>{
+  const prior=localStorage.getItem(KEY),now=Date.now();
+  if(prior&&now-historyAutoAt>=300000&&prior!==JSON.stringify(db)){
+    if(!historyAdd('修改前自動備份',JSON.parse(prior))){db=load();renderAll();throw new Error('備份失敗，已停止儲存');}
+    historyAutoAt=now;
+  }
+  localStorage.setItem(KEY,JSON.stringify(db));fbSchedulePush();checkAchievements();
+};
+$('#historySave').onclick=()=>{if(historyAdd($('#historyName').value.trim()||'手動儲存版本')){$('#historyName').value='';toast('版本已儲存 ✓','ok');}};
+$('#historyList').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.historyDownload){const r=historyRead().find(x=>x.id===b.dataset.historyDownload);if(r)download('runlog-version-'+r.at+'.json',JSON.stringify(r.data,null,2),'application/json');}
+  if(b.dataset.historyRestore){const id=b.dataset.historyRestore;askConfirm('返回這個版本？會先備份目前資料，並暫停雲端同步。',()=>historyRestore(id));}
+};
 const plat=id=>db.platforms.find(p=>p.id===id)||{name:'(已刪平台)',color:'#7a8a97'};
 
 /* ═══════════════ 計算 ═══════════════ */
@@ -1989,6 +2170,122 @@ $('#calNext').onclick=()=>{const y=calCursor.getFullYear(),m=calCursor.getMonth(
 $('#calToday').onclick=()=>{calCursor=new Date();calSel=todayKey();renderCal()};
 $('#calAdd').onclick=()=>{openDlModal(null);$('#fDate').value=calSel};
 
+/* ═══════════════ 時間軸編輯（審計用：補忘記按的切換）═══════════════ */
+const tlMin=v=>{if(!v)return 0;const p=String(v).split(':').map(Number);return (p[0]*60+p[1])||0};
+const tlOk=v=>/^\d{1,2}:\d{2}$/.test(String(v||''));
+const tlDur=(s,e)=>{let d=tlMin(e)-tlMin(s);if(d<0)d+=1440;return d}; /* 跨日（19:30→04:00）自動 +24h */
+const tlSegs=a=>Array.isArray(a)?a.filter(g=>tlOk(g.s)&&tlOk(g.e)):[];
+
+function tlRead(k){
+  const on=[],pause=[];let err=null;
+  $$('#tlOnRows .tlrow').forEach(row=>{
+    const s=row.querySelector('.tl-s').value,e=row.querySelector('.tl-e').value;
+    if(!s||!e)return;
+    if(tlMin(e)===tlMin(s)){err='上線時段：結束不能等於開始（'+s+'–'+e+'）';return}
+    on.push({s,e});
+  });
+  $$('#tlPauseRows .tlrow').forEach(row=>{
+    const s=row.querySelector('.tl-s').value,e=row.querySelector('.tl-e').value,t=row.querySelector('.tl-type').value;
+    if(!s||!e)return;
+    if(tlMin(e)===tlMin(s)){err='休息／等單：結束不能等於開始（'+s+'–'+e+'）';return}
+    pause.push({s,e,t});
+  });
+  if(!err){
+    const sorted=[...pause].sort((a,b)=>tlMin(a.s)-tlMin(b.s));
+    for(let i=1;i<sorted.length;i++){
+      if(tlMin(sorted[i].s)<tlMin(sorted[i-1].e)){
+        err='時段重疊：'+sorted[i-1].s+'–'+sorted[i-1].e+' 和 '+sorted[i].s+'–'+sorted[i].e;break}
+    }
+  }
+  const r=shiftRec(k);
+  const onM=on.reduce((a,g)=>a+tlDur(g.s,g.e),0);
+  const brRows=pause.filter(p=>p.t==='br'),wtRows=pause.filter(p=>p.t==='wt');
+  const brM=brRows.reduce((a,g)=>a+tlDur(g.s,g.e),0);
+  const wtM=wtRows.reduce((a,g)=>a+tlDur(g.s,g.e),0);
+  const hasOn=on.length>0;
+  /* 沒填時間段就維持原本存的值（每日快記填的時數不會被清掉） */
+  return{on,pause,err,onM,brM,wtM,hasOn,brRows,wtRows,
+    onT:hasOn?onM:num(r&&r.onlineMin),
+    brT:hasOn?brM:(brRows.length?brM:num(r&&r.breakMin)),
+    wtT:hasOn?wtM:(wtRows.length?wtM:num(r&&r.waitMin))};
+}
+function openTlModal(){
+  const k=calSel,r=shiftRec(k);
+  $('#tlDate').textContent=fmtDateTw(k);
+  $('#tlOnRows').innerHTML='';$('#tlPauseRows').innerHTML='';
+  const segs=tlSegs(r&&r.segs);
+  segs.forEach(g=>addTlOn(g.s,g.e));
+  if(!segs.length)addTlOn('','');
+  const br=tlSegs(r&&r.breakSegs),wt=tlSegs(r&&r.waitSegs);
+  [...br.map(g=>({g,t:'br'})),...wt.map(g=>({g,t:'wt'}))]
+    .sort((a,b)=>tlMin(a.g.s)-tlMin(b.g.s))
+    .forEach(x=>addTlPause(x.g.s,x.g.e,x.t));
+  $('#tlHint').textContent=segs.length?''
+    :(r?'這天沒有實際時間段（時數來自「每日快記」）。直接填時間＝以時間為準；只想補休息／等單就不用填。'
+       :'這天還沒有班次紀錄，填上線時間即可建立。');
+  updateTlSummary();
+  $('#tlModal').classList.add('open');
+}
+function addTlOn(s,e){
+  const d=document.createElement('div');d.className='tlrow';
+  d.innerHTML=`<input type="time" class="tl-s" value="${s||''}"><input type="time" class="tl-e" value="${e||''}"><button class="icon-btn del tl-del" title="移除">🗑</button>`;
+  $('#tlOnRows').append(d);
+}
+function addTlPause(s,e,t){
+  const d=document.createElement('div');d.className='tlrow p';
+  d.innerHTML=`<input type="time" class="tl-s" value="${s||''}"><input type="time" class="tl-e" value="${e||''}"><select class="tl-type"><option value="br"${t==='br'?' selected':''}>☕ 休息</option><option value="wt"${t==='wt'?' selected':''}>⏳ 等單</option></select><button class="icon-btn del tl-del" title="刪除＝變回跑單">🗑</button>`;
+  $('#tlPauseRows').append(d);
+}
+function updateTlSummary(){
+  const t=tlRead(calSel);
+  $('#tlSummary').innerHTML=`<span class="chip">⏱ 上線 <b class="mono">${fmtDur(t.onT)}</b></span>
+    <span class="chip">☕ 休息 <b class="mono">${fmtDur(t.brT)}</b></span>
+    <span class="chip">⏳ 等單 <b class="mono">${fmtDur(t.wtT)}</b></span>
+    <span class="chip" style="color:var(--ue)">🟢 跑單 <b class="mono">${fmtDur(Math.max(0,t.onT-t.brT-t.wtT))}</b></span>`;
+  $$('#tlOnRows .tlrow,#tlPauseRows .tlrow').forEach(row=>{
+    const s=row.querySelector('.tl-s').value,e=row.querySelector('.tl-e').value;
+    row.classList.toggle('xd',!!(s&&e&&tlMin(e)<tlMin(s)));
+  });
+}
+$('#tlModal').addEventListener('input',updateTlSummary);
+$('#tlModal').addEventListener('change',updateTlSummary);
+$('#tlModal').addEventListener('click',e=>{
+  const del=e.target.closest('.tl-del');
+  if(del){del.closest('.tlrow').remove();updateTlSummary()}
+});
+$('#tlAddOn').onclick=()=>{addTlOn('','');updateTlSummary()};
+$('#tlAddBr').onclick=()=>{addTlPause('','','br');updateTlSummary()};
+$('#tlAddWt').onclick=()=>{addTlPause('','','wt');updateTlSummary()};
+$('#tlCancel').onclick=()=>$('#tlModal').classList.remove('open');
+$('#tlSave').onclick=()=>{
+  const k=calSel,t=tlRead(k);
+  if(t.err){toast(t.err,'err');return}
+  const r0=shiftRec(k);
+  if(!t.hasOn&&!t.pause.length){
+    if(r0){askConfirm('時間軸全空了，要刪除 '+fmtDateTw(k)+' 的班次紀錄嗎？',()=>{
+      db.shifts=db.shifts.filter(s=>s.id!==r0.id);save();
+      $('#tlModal').classList.remove('open');renderAll();renderCal();toast('已刪除 '+fmtDateTw(k)+' 的班次');});}
+    else $('#tlModal').classList.remove('open');
+    return;
+  }
+  let r=r0;
+  if(!r){r={id:uid(),date:k,segs:[],onlineMin:0,breakMin:0,waitMin:0,km:0,breakSegs:[],waitSegs:[]};db.shifts.push(r)}
+  r.breakSegs=t.brRows.map(p=>({s:p.s,e:p.e}));
+  r.waitSegs=t.wtRows.map(p=>({s:p.s,e:p.e}));
+  r.breakMin=t.brT;r.waitMin=t.wtT;
+  const q0=r.q||null, kmQ=(q0&&q0.km!=null)?q0.km:num(r.km), noteQ=(q0&&q0.note)||r.note||'';
+  if(t.hasOn){
+    r.segs=t.on;r.onlineMin=t.onM;
+    r.q={on:0,br:0,wt:0,km:kmQ,note:noteQ};
+  }else{
+    if(!r.segs)r.segs=[];
+    r.q={on:num(q0&&q0.on),br:t.brRows.length?0:num(q0&&q0.br),wt:t.wtRows.length?0:num(q0&&q0.wt),km:kmQ,note:noteQ};
+  }
+  save();$('#tlModal').classList.remove('open');renderAll();renderCal();
+  toast('時間軸已更新 ✂️ 跑單 '+fmtDur(Math.max(0,t.onT-t.brT-t.wtT)),'ok');
+};
+$('#calTl').onclick=openTlModal;
+
 /* ═══════════════ 收入分析 ═══════════════ */
 let anRange='week';
 $$('.an-btn').forEach(b=>b.onclick=()=>{anRange=b.dataset.r;$$('.an-btn').forEach(x=>x.classList.toggle('on',x===b));renderAna()});
@@ -2036,7 +2333,7 @@ function renderAna(){
   const maxRev=Math.max(...stats.map(s=>s.rev),1);
   $('#platCards').innerHTML=stats.map(s=>`
     <div class="card pcard" style="--c:${safeColor(s.p.color)}">
-      <div class="top"><span class="pbadge" style="--c:${safeColor(p.color)}">${esc(p.name)}</span>
+      <div class="top"><span class="pbadge" style="--c:${safeColor(s.p.color)}">${esc(s.p.name)}</span>
         ${best&&s.p.id===best.p.id&&s.hourly>0?'<span class="crown">👑 時薪王</span>':''}</div>
       <div class="hourly">${s.hourly?'$'+s.hourly.toFixed(2):'<span class="nohr">—</span>'}<small> /小時（依送單時數）</small></div>
       <div class="rows">
@@ -2066,6 +2363,7 @@ function renderAna(){
 
 /* ═══════════════ 設定 ═══════════════ */
 function renderSet(){
+  renderHistory();
   $('#setName').value=db.profile.name;$('#setGoal').value=db.profile.goal;$('#setCpm').value=db.profile.cpm;
   $('#platList').innerHTML=db.platforms.map(p=>{const n=db.deliveries.filter(d=>d.platform===p.id).reduce((a,d)=>a+ordOf(d),0);
     return `<div class="plat-manage-row"><span class="sw-lg" style="background:${safeColor(p.color)}"></span>
@@ -2096,6 +2394,7 @@ $('#btnCsv').onclick=()=>{
 $('#btnImport').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();
   rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d||typeof d!=='object'||!Array.isArray(d.deliveries))throw new Error();
+    if(!historyAdd('匯入前自動備份'))return;
     db=Object.assign(defaultDB(),d,{
       profile:Object.assign(defaultDB().profile,d.profile||{}),
       platforms:Array.isArray(d.platforms)&&d.platforms.length?d.platforms:defaultDB().platforms,
@@ -2107,8 +2406,9 @@ $('#importFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=ne
     catch(err){toast('檔案格式不正確','err')}};rd.readAsText(f);e.target.value=''};
 $('#btnDemo').onclick=()=>askConfirm('載入示範資料？會加入過去兩週的假資料（不會清除你現有的紀錄）。',seedDemo);
 $('#btnDemo1').addEventListener('click',()=>seedDemo());
-$('#btnReset').onclick=()=>askConfirm('這會刪除所有紀錄且無法復原，確定要清除嗎？',()=>{
-  db=defaultDB();save();renderAll();toast('已清除全部資料','ok')});
+$('#btnReset').onclick=()=>askConfirm('清除目前所有資料？會先建立還原點，版本紀錄將保留。',()=>{
+  if(!historyAdd('清除前自動備份'))return;
+  db=defaultDB();save();renderAll();toast('已清除全部資料，可在版本紀錄還原。','ok')});
 
 /* ═══════════════ 示範資料 ═══════════════ */
 function seedDemo(){
@@ -2151,7 +2451,7 @@ const DEVICE_ID=(()=>{let id=localStorage.getItem('runlog.device');if(!id){id=ui
 let fbCfg=(()=>{try{return Object.assign({docKey:'main',auto:true},JSON.parse(localStorage.getItem(FB_KEY)||'{}'))}catch(e){return{docKey:'main',auto:true}}})();
 const saveFb=()=>localStorage.setItem(FB_KEY,JSON.stringify(fbCfg));
 const fbState={app:null,fs:null,ref:null,unsub:null,connected:false};
-let fbLib=null,fbTimer=null,fbCancelCb=null;
+let fbLib=null,fbTimer=null,fbCancelCb=null,fbPushing=false,fbConnecting=false;
 
 const FIREBASE_CONFIG={
   apiKey:"AIzaSyDiyRb34jCDwJNjH6ayV1Dvh3Hc6ntJAyQ",
@@ -2179,28 +2479,34 @@ async function fbPull(){if(!fbState.connected)return;fbStatus('下載中…','bu
     if(s.exists()&&s.data().json)fbApply(s.data().json,true);
     else{toast('雲端還沒有資料');fbStatus('已連線','ok')}}
   catch(e){fbStatus('下載失敗：'+(e.message||e),'err')}}
-async function fbConnect(){if(fbState.connected){toast('已經在連線狀態');return}
+async function fbConnect(){if(fbState.connected||fbConnecting){toast('已連線或正在連線');return;}
+  fbConnecting=true;
   try{const {app,fs}=await loadFbLib();
     const appName='runlog-'+DEVICE_ID.slice(-6);
-    let firebaseApp=app.getApps().find(a=>a.name===appName);
-    if(!firebaseApp){firebaseApp=app.initializeApp(FIREBASE_CONFIG,appName)}
-    fbState.app=firebaseApp;
-    fbState.fs=fs;
-    fbState.ref=fs.doc(fs.getFirestore(fbState.app),'runlog',fbCfg.docKey||'main');
-    fbState.connected=true;fbStatus('檢查雲端資料…','busy');
+    fbState.app=app.getApps().find(a=>a.name===appName)||app.initializeApp(FIREBASE_CONFIG,appName);
+    fbState.fs=fs;fbState.ref=fs.doc(fs.getFirestore(fbState.app),'runlog',fbCfg.docKey||'main');
+    fbStatus('檢查雲端資料…','busy');
     const snap=await fs.getDoc(fbState.ref);
-    if(snap.exists()&&snap.data().json&&snap.data().device!==DEVICE_ID){
+    if(snap.exists()&&snap.data().json){
       const remoteJson=snap.data().json;
-      fbCancelCb=()=>fbPush(true);
-      askConfirm('雲端已有資料：按「確定」→ 下載雲端覆蓋本地；按「取消」→ 上傳本地覆蓋雲端。',
-        ()=>{fbCancelCb=null;fbApply(remoteJson,true)});
-    } else {await fbPush(true)}
+      if(JSON.stringify(historyData(JSON.parse(remoteJson)))!==JSON.stringify(historyData(db))){
+        const accepted=await new Promise(resolve=>{
+          fbCancelCb=()=>resolve(false);
+          askConfirm('雲端與本機資料不同。確定：先備份目前資料，再下載雲端版本。取消：不更改任何資料，保持離線。',()=>{fbCancelCb=null;resolve(true);});
+        });
+        if(!accepted){fbStatus('已取消連線，資料未更改','');return;}
+        if(!fbApply(remoteJson,true))return;
+      }
+    }
+    fbState.connected=true;
+    if(!snap.exists()||!snap.data().json)await fbPush(true);
     if(fbCfg.auto)fbState.unsub=fs.onSnapshot(fbState.ref,s=>{const d=s.data();
-      if(d&&d.device!==DEVICE_ID&&d.json)fbApply(d.json,true)});
-    fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');
-    toast('Firebase 同步已開啟 ☁','ok');
-  }catch(e){fbState.connected=false;fbStatus('連線失敗：'+(e.message||e),'err');toast('Firebase 連線失敗','err');console.error(e)}}
-function fbDisconnect(){if(fbState.unsub){fbState.unsub();fbState.unsub=null}
+      if(d&&d.device!==DEVICE_ID&&d.json)fbApply(d.json,true);});
+    fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');toast('Firebase 同步已開啟 ☁','ok');
+  }catch(e){fbState.connected=false;fbStatus('連線失敗：'+(e.message||e),'err');toast('Firebase 連線失敗','err');}
+  finally{fbConnecting=false;}}
+
+function fbDisconnect(){clearTimeout(fbTimer);if(fbState.unsub){fbState.unsub();fbState.unsub=null}
   fbState.connected=false;fbStatus('未連線','');toast('已中斷 Firebase 連線')}
 
 $('#fbDocKey').value=fbCfg.docKey;$('#fbAuto').checked=fbCfg.auto;
@@ -2296,8 +2602,10 @@ $('#dSave').onclick=()=>{
 };
 
 function fbApply(json,notify){try{const d=JSON.parse(json);
+  const next=historyData(d);
+  if(JSON.stringify(next)!==JSON.stringify(historyData(db))&&!historyAdd('雲端下載前自動備份')){fbDisconnect();return false;}
   const myLive=db.live;
-  db=Object.assign(defaultDB(),d,{
+  const incoming=Object.assign(defaultDB(),d,{
     profile:Object.assign(defaultDB().profile,d.profile||{}),
     platforms:Array.isArray(d.platforms)&&d.platforms.length?d.platforms:defaultDB().platforms,
     shifts:Array.isArray(d.shifts)?d.shifts:[],
@@ -2305,18 +2613,26 @@ function fbApply(json,notify){try{const d=JSON.parse(json);
     achievements:d.achievements||{},
     payouts:Array.isArray(d.payouts)?d.payouts:[]
   });
-  if(myLive)db.live=myLive;
-  localStorage.setItem(KEY,JSON.stringify(db));
+  if(myLive)incoming.live=myLive;
+  localStorage.setItem(KEY,JSON.stringify(incoming));
+  db=incoming;
   checkAchievements({silent:true});
-  renderAll();if(notify)toast('已從雲端更新 ☁','ok')}catch(e){toast('雲端資料解析失敗','err')}}
+  renderAll();if(notify)toast('已從雲端更新 ☁','ok');return true;}catch(e){toast('雲端資料解析或儲存失敗','err');return false;}}
 
 async function fbPush(silent){if(!fbState.connected||!fbState.ref)return;
+  if(fbPushing){fbSchedulePush();return;}fbPushing=true;
   fbStatus('上傳中…','busy');
-  try{const payload=JSON.stringify(Object.assign({},db,{live:null}));
-    await fbState.fs.setDoc(fbState.ref,{json:payload,ts:Date.now(),device:DEVICE_ID});
-    fbStatus('已同步 '+fmtTime(Date.now()),'ok');
-    if(!silent)toast('已上傳到雲端 ☁','ok')}
-  catch(e){fbStatus('上傳失敗：'+(e.message||e),'err')}}
+  try{const ref=fbState.ref,fs=fbState.fs;
+    const remote=await fs.getDoc(ref);
+    if(!fbState.connected||ref!==fbState.ref)return;
+    const payload=JSON.stringify(Object.assign({},db,{live:null}));
+    if(remote.exists()&&remote.data().json&&remote.data().json!==payload){
+      if(!historyAdd('雲端覆蓋前備份 · '+(fbCfg.docKey||'main'),JSON.parse(remote.data().json))){fbStatus('備份失敗，未上傳','err');return;}
+    }
+    await fs.setDoc(ref,{json:payload,ts:Date.now(),device:DEVICE_ID});
+    fbStatus('已同步 '+fmtTime(Date.now()),'ok');if(!silent)toast('已上傳到雲端 ☁','ok');
+  }catch(e){fbStatus('上傳失敗：'+(e.message||e),'err');}
+  finally{fbPushing=false;}}
 
 function renderAll(){
   checkAchievements();
