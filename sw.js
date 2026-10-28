@@ -1,10 +1,9 @@
 // RUNLOG Service Worker - 離線優先策略
-const CACHE_NAME = 'runlog-v4.25';
+const CACHE_NAME = 'runlog-install-fix-20261028';
 const CORE_ASSETS = [
   './',
-  './v4.25waiting.html',
   './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap'
+  './app-icon.svg'
 ];
 
 // 安裝時快取核心檔案
@@ -18,7 +17,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k.startsWith('runlog-') && k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -38,7 +37,7 @@ self.addEventListener('fetch', e => {
   if (e.request.mode === 'navigate') {
     // HTML：網路優先，失敗用快取（這樣才能拿到最新版本）
     e.respondWith(
-      fetch(e.request).catch(() => caches.match('./v4.25waiting.html'))
+      fetch(e.request).catch(() => caches.match('./'))
     );
     return;
   }
