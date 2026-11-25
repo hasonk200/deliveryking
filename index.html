@@ -1158,6 +1158,20 @@ body{overflow-x:hidden}
   </div>
 </div>
 
+<!-- ── 同步衝突選擇 Modal ── -->
+<div class="overlay" id="syncConflictModal">
+  <div class="modal" style="max-width:480px">
+    <h2>☁ 雲端與本機資料不同</h2>
+    <p class="dim" style="margin-bottom:12px">請選擇要保留哪一邊的資料（覆蓋前都會自動先在「版本紀錄」留底）：</p>
+    <div id="scCompare" style="display:grid;gap:10px;margin-bottom:16px"></div>
+    <div class="modal-foot" style="flex-wrap:wrap;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" id="scCancel">取消（保持離線）</button>
+      <button class="btn btn-danger" id="scUseCloud">⬇ 下載雲端覆蓋本機</button>
+      <button class="btn btn-primary" id="scUseLocal">⬆ 用本機覆蓋雲端</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── 時間軸編輯 Modal ── -->
 <div class="overlay" id="tlModal">
   <div class="modal" style="max-width:560px;max-height:88vh;overflow-y:auto">
@@ -1259,7 +1273,7 @@ function historyRestore(id){const r=historyRead().find(x=>x.id===id);if(!r)retur
   const next=historyData(r.data);
   if(!historyAdd('還原前自動備份'))return;
   clearTimeout(fbTimer);fbDisconnect();fbCfg.auto=false;saveFb();$('#fbAuto').checked=false;
-  try{localStorage.setItem(KEY,JSON.stringify(next));db=next;renderAll();renderHistory();toast('已還原版本，雲端同步已暫停。','ok');}
+  try{localStorage.setItem(KEY,JSON.stringify(next));db=next;renderAll();renderHistory();toast('已還原版本並暫停雲端同步。確認無誤後可按「⬆ 上傳」推到雲端。','ok');}
   catch(e){toast('還原失敗，原有資料仍保留。','err');}
 }
 const save=()=>{
@@ -2502,48 +2516,178 @@ async function loadFbLib(){if(fbLib)return fbLib;
     import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js')]);
   fbLib={app,fs};return fbLib}
 function fbSchedulePush(){if(!fbState.connected||!fbCfg.auto)return;clearTimeout(fbTimer);fbTimer=setTimeout(()=>fbPush(true),800)}
-async function fbPull(){if(!fbState.connected)return;fbStatus('下載中…','busy');
-  try{const s=await fbState.fs.getDoc(fbState.ref);
-    if(s.exists()&&s.data().json)fbApply(s.data().json,true);
-    else{toast('雲端還沒有資料');fbStatus('已連線','ok')}}
-  catch(e){fbStatus('下載失敗：'+(e.message||e),'err')}}
-async function fbConnect(){if(fbState.connected||fbConnecting){toast('已連線或正在連線');return;}
+function summarizeSyncSide(data){
+  const shifts=Array.isArray(data&&data.shifts)?data.shifts:[];
+  const deliveries=Array.isArray(data&&data.deliveries)?data.deliveries:[];
+  const income=deliveries.reduce((a,d)=>a+num(d.pay)+num(d.tip),0);
+  let latestShift=null;
+  shifts.forEach(s=>{if(s&&s.date&&(!latestShift||s.date>latestShift.date))latestShift=s;});
+  let latestDeliveryDate='';
+  deliveries.forEach(d=>{if(d&&d.date&&d.date>latestDeliveryDate)latestDeliveryDate=d.date;});
+  return{
+    shiftsCount:shifts.length,
+    deliveriesCount:deliveries.length,
+    income,
+    latestShiftDate:latestShift?latestShift.date:'',
+    latestShiftActive:latestShift?fmtDur(activeMinOf(latestShift)):'',
+    latestDeliveryDate
+  };
+}
+function renderSyncCard(icon,title,info,extraLine){
+  const latestShiftText=info.latestShiftDate
+    ?`${esc(info.latestShiftDate)}（活躍 ${esc(info.latestShiftActive)}）`
+    :'無班次';
+  const latestDlText=info.latestDeliveryDate?` · 最後外送 ${esc(info.latestDeliveryDate)}`:'';
+  return `<div style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)">
+    <div style="font-weight:700;margin-bottom:4px">${icon} ${esc(title)}</div>
+    <div class="tiny">最新班次：<b>${latestShiftText}</b></div>
+    <div class="tiny">總班次：${info.shiftsCount} 日 · 外送紀錄：${info.deliveriesCount} 筆（${fmtM(info.income)}）${latestDlText}</div>
+    ${extraLine?`<div class="tiny" style="margin-top:2px;color:var(--dim)">${extraLine}</div>`:''}
+  </div>`;
+}
+function askSyncConflict(localData,remoteData,remoteTs){
+  const localInfo=summarizeSyncSide(localData);
+  const remoteInfo=summarizeSyncSide(remoteData);
+  const remoteTimeText=remoteTs?`雲端最後更新：${esc(new Date(remoteTs).toLocaleString())}`:'';
+  $('#scCompare').innerHTML=
+    renderSyncCard('📱','本機資料',localInfo,'')+
+    renderSyncCard('☁','雲端資料',remoteInfo,remoteTimeText);
+  return new Promise(resolve=>{
+    let settled=false;
+    const done=choice=>{
+      if(settled)return;
+      settled=true;
+      fbCancelCb=null;
+      $('#syncConflictModal').classList.remove('open');
+      $('#scUseLocal').onclick=null;
+      $('#scUseCloud').onclick=null;
+      $('#scCancel').onclick=null;
+      resolve(choice);
+    };
+    fbCancelCb=()=>done('cancel');
+    $('#scUseLocal').onclick=()=>done('local');
+    $('#scUseCloud').onclick=()=>done('cloud');
+    $('#scCancel').onclick=()=>done('cancel');
+    $('#syncConflictModal').classList.add('open');
+  });
+}
+async function ensureFbRef(){
+  fbCfg.docKey=$('#fbDocKey').value.trim()||fbCfg.docKey||'main';
+  saveFb();
+  const {app,fs}=await loadFbLib();
+  const appName='runlog-'+DEVICE_ID.slice(-6);
+  fbState.app=app.getApps().find(a=>a.name===appName)||app.initializeApp(FIREBASE_CONFIG,appName);
+  fbState.fs=fs;
+  fbState.ref=fs.doc(fs.getFirestore(fbState.app),'runlog',fbCfg.docKey||'main');
+  return{fs,ref:fbState.ref};
+}
+function attachFbListener(){
+  if(fbState.unsub){fbState.unsub();fbState.unsub=null;}
+  if(fbState.connected&&fbCfg.auto&&fbState.fs&&fbState.ref){
+    fbState.unsub=fbState.fs.onSnapshot(fbState.ref,s=>{
+      const d=s.data();
+      if(d&&d.device!==DEVICE_ID&&d.json)fbApply(d.json,true);
+    });
+  }
+}
+async function fbPull(){
+  if(fbState.connected&&fbState.ref){
+    fbStatus('下載中…','busy');
+    try{
+      const s=await fbState.fs.getDoc(fbState.ref);
+      if(s.exists()&&s.data().json)fbApply(s.data().json,true);
+      else toast('雲端還沒有資料');
+      fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');
+    }catch(e){fbStatus('下載失敗：'+(e.message||e),'err');}
+    return;
+  }
+  if(fbConnecting||fbPushing){toast('正在處理同步，請稍候');return;}
+  askConfirm('目前為離線狀態。確定要下載雲端資料覆蓋本機，並重新開啟自動同步嗎？（會先備份目前資料）',async ()=>{
+    fbConnecting=true;
+    try{
+      const {fs,ref}=await ensureFbRef();
+      fbStatus('下載中…','busy');
+      const s=await fs.getDoc(ref);
+      if(s.exists()&&s.data().json){
+        if(!fbApply(s.data().json,true))return;
+      }else{
+        toast('雲端還沒有資料');
+      }
+      fbState.connected=true;
+      fbCfg.auto=true;$('#fbAuto').checked=true;saveFb();
+      attachFbListener();
+      fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');
+    }catch(e){
+      fbState.connected=false;
+      fbStatus('下載失敗：'+(e.message||e),'err');
+      toast('下載失敗','err');
+    }finally{fbConnecting=false;}
+  });
+}
+function fbPushManual(){
+  if(fbState.connected&&fbState.ref){fbPush(false);return;}
+  if(fbConnecting||fbPushing){toast('正在處理同步，請稍候');return;}
+  askConfirm('目前為離線狀態。確定要用本機資料覆蓋雲端，並重新開啟自動同步嗎？（會先備份舊雲端資料）',async ()=>{
+    fbConnecting=true;
+    try{
+      await ensureFbRef();
+      fbState.connected=true;
+      const ok=await fbPush(false);
+      if(!ok){fbState.connected=false;return;}
+      fbCfg.auto=true;$('#fbAuto').checked=true;saveFb();
+      attachFbListener();
+      fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');
+    }catch(e){
+      fbState.connected=false;
+      fbStatus('上傳失敗：'+(e.message||e),'err');
+      toast('上傳失敗','err');
+    }finally{fbConnecting=false;}
+  });
+}
+async function fbConnect(manual=false){
+  if(fbState.connected||fbConnecting){if(manual)toast('已連線或正在連線');return;}
   fbConnecting=true;
-  try{const {app,fs}=await loadFbLib();
-    const appName='runlog-'+DEVICE_ID.slice(-6);
-    fbState.app=app.getApps().find(a=>a.name===appName)||app.initializeApp(FIREBASE_CONFIG,appName);
-    fbState.fs=fs;fbState.ref=fs.doc(fs.getFirestore(fbState.app),'runlog',fbCfg.docKey||'main');
+  try{
+    const {fs,ref}=await ensureFbRef();
     fbStatus('檢查雲端資料…','busy');
-    const snap=await fs.getDoc(fbState.ref);
+    const snap=await fs.getDoc(ref);
+    let choice='same';
     if(snap.exists()&&snap.data().json){
       const remoteJson=snap.data().json;
-      if(JSON.stringify(historyData(JSON.parse(remoteJson)))!==JSON.stringify(historyData(db))){
-        const accepted=await new Promise(resolve=>{
-          fbCancelCb=()=>resolve(false);
-          askConfirm('雲端與本機資料不同。確定：先備份目前資料，再下載雲端版本。取消：不更改任何資料，保持離線。',()=>{fbCancelCb=null;resolve(true);});
-        });
-        if(!accepted){fbStatus('已取消連線，資料未更改','');return;}
-        if(!fbApply(remoteJson,true))return;
+      const remoteObj=JSON.parse(remoteJson);
+      if(JSON.stringify(historyData(remoteObj))!==JSON.stringify(historyData(db))){
+        choice=await askSyncConflict(db,remoteObj,snap.data().ts);
+        if(choice==='cancel'){fbStatus('已取消連線，資料未更改','');return;}
+        if(choice==='cloud'&&!fbApply(remoteJson,true))return;
       }
     }
     fbState.connected=true;
-    if(!snap.exists()||!snap.data().json)await fbPush(true);
-    if(fbCfg.auto)fbState.unsub=fs.onSnapshot(fbState.ref,s=>{const d=s.data();
-      if(d&&d.device!==DEVICE_ID&&d.json)fbApply(d.json,true);});
-    fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');toast('Firebase 同步已開啟 ☁','ok');
+    if(!snap.exists()||!snap.data().json){
+      const ok=await fbPush(true);
+      if(!ok){fbState.connected=false;return;}
+    }else if(choice==='local'){
+      const ok=await fbPush(false);
+      if(!ok){fbState.connected=false;return;}
+    }
+    if(manual){fbCfg.auto=true;$('#fbAuto').checked=true;saveFb();}
+    attachFbListener();
+    fbStatus('已連線 · 金鑰 '+(fbCfg.docKey||'main'),'ok');
+    if(choice!=='local')toast('Firebase 同步已開啟 ☁','ok');
   }catch(e){fbState.connected=false;fbStatus('連線失敗：'+(e.message||e),'err');toast('Firebase 連線失敗','err');}
-  finally{fbConnecting=false;}}
+  finally{fbConnecting=false;}
+}
 
 function fbDisconnect(){clearTimeout(fbTimer);if(fbState.unsub){fbState.unsub();fbState.unsub=null}
   fbState.connected=false;fbStatus('未連線','');toast('已中斷 Firebase 連線')}
 
 $('#fbDocKey').value=fbCfg.docKey;$('#fbAuto').checked=fbCfg.auto;
 $('#fbPill').onclick=()=>switchView('set');
+$('#fbAuto').onchange=()=>{fbCfg.auto=$('#fbAuto').checked;saveFb();if(fbState.connected)attachFbListener();};
 $('#fbSaveCfg').onclick=()=>{fbCfg.docKey=$('#fbDocKey').value.trim()||'main';fbCfg.auto=$('#fbAuto').checked;saveFb();toast('同步設定已儲存 ✓','ok');
-  if(fbState.connected){fbDisconnect();fbConnect()}};
-$('#fbConnect').onclick=fbConnect;
+  if(fbState.connected){fbDisconnect();fbConnect(true)}};
+$('#fbConnect').onclick=()=>fbConnect(true);
 $('#fbDisconnect').onclick=fbDisconnect;
-$('#fbPush').onclick=()=>fbPush(false);
+$('#fbPush').onclick=fbPushManual;
 $('#fbPull').onclick=fbPull;
 
 /* ═══════════════ 快記升級：可編輯日期資料 ═══════════════ */
@@ -2647,19 +2791,20 @@ function fbApply(json,notify){try{const d=JSON.parse(json);
   checkAchievements({silent:true});
   renderAll();if(notify)toast('已從雲端更新 ☁','ok');return true;}catch(e){toast('雲端資料解析或儲存失敗','err');return false;}}
 
-async function fbPush(silent){if(!fbState.connected||!fbState.ref)return;
-  if(fbPushing){fbSchedulePush();return;}fbPushing=true;
+async function fbPush(silent){if(!fbState.connected||!fbState.ref)return false;
+  if(fbPushing){fbSchedulePush();return false;}fbPushing=true;
   fbStatus('上傳中…','busy');
   try{const ref=fbState.ref,fs=fbState.fs;
     const remote=await fs.getDoc(ref);
-    if(!fbState.connected||ref!==fbState.ref)return;
+    if(!fbState.connected||ref!==fbState.ref)return false;
     const payload=JSON.stringify(Object.assign({},db,{live:null}));
     if(remote.exists()&&remote.data().json&&remote.data().json!==payload){
-      if(!historyAdd('雲端覆蓋前備份 · '+(fbCfg.docKey||'main'),JSON.parse(remote.data().json))){fbStatus('備份失敗，未上傳','err');return;}
+      if(!historyAdd('雲端覆蓋前備份 · '+(fbCfg.docKey||'main'),JSON.parse(remote.data().json))){fbStatus('備份失敗，未上傳','err');return false;}
     }
     await fs.setDoc(ref,{json:payload,ts:Date.now(),device:DEVICE_ID});
     fbStatus('已同步 '+fmtTime(Date.now()),'ok');if(!silent)toast('已上傳到雲端 ☁','ok');
-  }catch(e){fbStatus('上傳失敗：'+(e.message||e),'err');}
+    return true;
+  }catch(e){fbStatus('上傳失敗：'+(e.message||e),'err');return false;}
   finally{fbPushing=false;}}
 
 function renderAll(){
@@ -2671,7 +2816,7 @@ function renderAll(){
 syncShiftUI();
 switchView('dash');
 if(fbCfg.auto&&fbCfg.docKey){
-  fbConnect();
+  fbConnect(false);
 }
 
 /* ═══════════ PWA 桌面捷徑（Shortcuts）動作解析 ═══════════ */

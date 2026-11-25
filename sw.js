@@ -1,5 +1,5 @@
 // RUNLOG Service Worker - 離線優先策略
-const CACHE_NAME = 'runlog-install-fix-20261028';
+const CACHE_NAME = 'runlog-sync-fix-20261125';
 const CORE_ASSETS = [
   './',
   './manifest.json',
